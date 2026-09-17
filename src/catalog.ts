@@ -25,6 +25,7 @@ export type Product = {
   category: string;
   material: string;
   size: string;
+  price?: number;
   createdAt: string;
   updatedAt: string;
   photos: Photo[];
@@ -58,6 +59,32 @@ function positive(value: unknown, maximum: number): number {
 
 export function isImagePath(path: string): boolean { return imagePath.test(path); }
 
+export function parsePrice(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || !Number.isSafeInteger(Math.round(value * 100)) || Math.round(value * 100) / 100 !== value) throw new Error('价格必须是有效的非负金额，最多保留两位小数');
+  return value;
+}
+
+export function formatPrice(price?: number): string { return price === undefined ? '暂未标价' : `¥${price.toFixed(2)}`; }
+
+function filterValue(value: unknown): string { return typeof value === 'string' ? value.trim() : ''; }
+
+export function getFilterOptions(products: readonly Product[]): { categories: string[]; materials: string[] } {
+  const categories = new Set<string>();
+  const materials = new Set<string>();
+  for (const product of products) {
+    const category = filterValue(product?.category);
+    const material = filterValue(product?.material);
+    if (category) categories.add(category);
+    if (material) materials.add(material);
+  }
+  return { categories: [...categories].sort((first, second) => first.localeCompare(second, 'zh-CN')), materials: [...materials].sort((first, second) => first.localeCompare(second, 'zh-CN')) };
+}
+
+export function filterProducts(products: readonly Product[], category = '', material = ''): readonly Product[] {
+  return products.filter((product) => (!category || filterValue(product.category) === category) && (!material || filterValue(product.material) === material));
+}
+
 export function parseCatalog(input: unknown): Catalog {
   const source = record(input);
   if (source.schemaVersion !== 1 || !Array.isArray(source.products)) throw new Error('不支持的清单版本，请更新网站后重试');
@@ -81,7 +108,8 @@ export function parseCatalog(input: unknown): Catalog {
       if (photo.src !== src || photo.thumbnail !== thumbnail) throw new Error('图片只能使用本站作品目录中的安全路径');
       return { id: photoId, src, thumbnail, width: positive(photo.width, 1600), height: positive(photo.height, 1600), bytes: positive(photo.bytes, DETAIL_BYTES), thumbnailBytes: positive(photo.thumbnailBytes, THUMB_BYTES), alt: text(photo.alt, textLimits.alt, '图片说明', true) };
     });
-    return { id, name: text(product.name, textLimits.name, '名称', true), description: text(product.description, textLimits.description, '简介'), category: text(product.category, textLimits.category, '分类'), material: text(product.material, textLimits.material, '材质'), size: text(product.size, textLimits.size, '尺寸'), createdAt: date(product.createdAt), updatedAt: date(product.updatedAt), photos };
+    const price = parsePrice(product.price);
+    return { id, name: text(product.name, textLimits.name, '名称', true), description: text(product.description, textLimits.description, '简介'), category: text(product.category, textLimits.category, '分类'), material: text(product.material, textLimits.material, '材质'), size: text(product.size ?? '', textLimits.size, '旧尺寸'), ...(price === undefined ? {} : { price }), createdAt: date(product.createdAt), updatedAt: date(product.updatedAt), photos };
   });
   const catalog: Catalog = { schemaVersion: 1, revision, updatedAt: date(source.updatedAt), products };
   if (new TextEncoder().encode(`${JSON.stringify(catalog, null, 2)}\n`).length > MAX_CATALOG_BYTES) throw new Error('作品清单超过 1MB，请减少作品或精简介绍后再发布');

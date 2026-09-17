@@ -102,7 +102,7 @@ export async function checkPhotoWall(page) {
       for (const path of [src, thumbnail]) treeEntries.push({ path: `public/${path}`, sha: blobs[imageIndex].sha });
       return { id: photoId, src, thumbnail, width: image.width, height: image.height, bytes: image.bytes, thumbnailBytes: image.bytes, alt: imageIndex ? '横幅测试图' : '长幅测试图' };
     });
-    return { id, name: `布局验收 ${position + 1}`, description: '仅用于本地隔离验收'.repeat(position === 1 ? 80 : 1), category: '测试分类', material: '棉线与木珠'.repeat(position === 1 ? 24 : 1), size: '12 × 8 cm', createdAt: now, updatedAt: now, photos };
+    return { id, name: `布局验收 ${position + 1}`, description: '仅用于本地隔离验收'.repeat(position === 1 ? 80 : 1), category: ['项链', '手链', '戒指', '项链'][position], material: ['925银', '棉线与木珠'.repeat(24), '925银', '珍珠'][position], price: [128.5, 0, undefined, 48][position], size: '12 × 8 cm', createdAt: now, updatedAt: now, photos };
   });
   const catalog = { schemaVersion: 1, revision: randomUUID(), updatedAt: now, products };
   const manifest = await request('/__github/git/blobs', { content: JSON.stringify(catalog), encoding: 'utf-8' });
@@ -119,6 +119,29 @@ export async function checkPhotoWall(page) {
     const layout = await page.evaluate(() => ({ columns: getComputedStyle(document.querySelector('.photo-grid')).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth > innerWidth }));
     assert.equal(layout.columns, width > 800 ? 4 : 2);
     assert.equal(layout.overflow, false, `${width}px 页面不应横向溢出`);
+    const filterOptions = await page.evaluate(() => ({ categories: [...document.querySelector('#wall-category').options].map((option) => option.value), materials: [...document.querySelector('#wall-material').options].map((option) => option.value) }));
+    assert.deepEqual(new Set(filterOptions.categories), new Set(['', '项链', '手链', '戒指']));
+    assert.equal(filterOptions.categories.length, 4);
+    assert.deepEqual(new Set(filterOptions.materials), new Set(['', '925银', '棉线与木珠'.repeat(24), '珍珠']));
+    assert.equal(filterOptions.materials.length, 4);
+    async function checkVisible(names) {
+      assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.photo-caption-heading h3')].map((heading) => heading.textContent)), names);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    }
+    await page.selectOption('#wall-category', '项链');
+    await checkVisible(['布局验收 1', '布局验收 4']);
+    await page.selectOption('#wall-material', '925银');
+    await checkVisible(['布局验收 1']);
+    assert.equal(await page.evaluate(() => document.querySelector('.filter-summary').textContent.includes('项链 · 925银')), true);
+    await page.selectOption('#wall-category', '');
+    await checkVisible(['布局验收 1', '布局验收 3']);
+    await page.selectOption('#wall-category', '手链');
+    await checkVisible([]);
+    await page.waitForSelector('.filtered-empty', { state: 'visible' });
+    await page.click('.filtered-empty button');
+    await checkVisible(['布局验收 1', '布局验收 2', '布局验收 3', '布局验收 4']);
+    assert.equal(await page.evaluate(() => document.querySelector('.filter-all').getAttribute('aria-pressed')), 'true');
+    assert.equal(await page.evaluate(() => document.querySelectorAll('.photo-price')[1].textContent), '¥0.00');
     if (width <= 480) {
       await page.waitForFunction(() => [...document.querySelectorAll('.photo-memory')].every((card) => card.getAnimations().every((animation) => animation.playState !== 'running')));
       const cards = await page.evaluate(() => [...document.querySelectorAll('.photo-memory')].map((card) => {
@@ -149,6 +172,8 @@ export async function checkPhotoWall(page) {
     await page.waitForSelector('.detail-photo-open', { state: 'visible' });
     console.log(await page.snapshot());
     await checkCenteredDetail();
+    assert.equal(await page.evaluate(() => document.querySelector('.detail-price').textContent), '¥128.50');
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('.detail-copy dt')].some((item) => item.textContent === '尺寸')), false);
     assert.deepEqual(await page.evaluate(() => {
       const buttons = [...document.querySelectorAll('.detail-actions button')];
       const [back, contact] = buttons.map((button) => button.getBoundingClientRect());
@@ -194,6 +219,6 @@ export async function checkPhotoWall(page) {
     await page.keyboard.press('Escape');
     await page.waitForSelector('.detail-modal', { state: 'hidden' });
     assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
-    console.log(`${width}px: 顶部与底部联系图标、主页链接、三处微信复制及浮动消息、失败兜底、按钮排列、详情居中、长文本、全屏照片及焦点检查通过`);
+    console.log(`${width}px: 价格、分类与材质单独/组合筛选、无匹配恢复、双列布局、联系入口、详情和全屏照片回归通过`);
   }
 }

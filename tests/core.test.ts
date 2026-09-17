@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
-import { acknowledgePublication, DETAIL_BYTES, formatBytes, imagePaths, isImagePath, MAX_FILE_BYTES, newProduct, parseCatalog, usedBytes, validateFileHeader } from '../src/catalog.ts';
+import { acknowledgePublication, DETAIL_BYTES, filterProducts, formatBytes, formatPrice, getFilterOptions, imagePaths, isImagePath, MAX_FILE_BYTES, newProduct, parseCatalog, parsePrice, usedBytes, validateFileHeader } from '../src/catalog.ts';
 import type { Catalog, Draft, Product } from '../src/catalog.ts';
 import { authenticate, encodeBase64, fetchPublishedCatalog, GitHubError, publishCatalog, readSnapshot, repositoryPath } from '../src/github.ts';
 import type { Snapshot } from '../src/github.ts';
@@ -54,6 +54,65 @@ test('清单允许空墙并保留中文、日期与有效图片路径', () => {
   assert.equal(usedBytes(catalog([product()])), 24);
   assert.equal(formatBytes(1024), '1 KB');
   assert.equal(formatBytes(1024 * 1024), '1.0 MB');
+});
+
+test('价格支持零和两位小数，拒绝负数、非数字、溢出和过高精度', () => {
+  for (const price of [0, 0.01, 0.29, 19.9, 128.56, 999999.99]) {
+    assert.equal(parsePrice(price), price);
+    assert.equal(parseCatalog(catalog([{ ...product(), price }])).products[0].price, price);
+  }
+  for (const price of [-1, -0.01, NaN, Infinity, -Infinity, 0.001, Number.MAX_SAFE_INTEGER, '12.50', '', null, true]) {
+    assert.throws(() => parsePrice(price), /价格/);
+    assert.throws(() => parseCatalog(catalog([{ ...product(), price } as Product])), /价格/);
+  }
+  assert.equal(formatPrice(0), '¥0.00');
+  assert.equal(formatPrice(128.5), '¥128.50');
+  assert.equal(formatPrice(), '暂未标价');
+});
+
+test('旧尺寸不会被误作价格，新增价格兼容未标价和无尺寸的作品', () => {
+  const legacy = parseCatalog(catalog([product()])).products[0];
+  assert.equal(legacy.size, '12 × 8 cm');
+  assert.equal(legacy.price, undefined);
+  const current = { ...product(), price: 12.5 } as Partial<Product>;
+  delete current.size;
+  const parsed = parseCatalog(catalog([current as Product])).products[0];
+  assert.equal(parsed.size, '');
+  assert.equal(parsed.price, 12.5);
+  assert.equal(parseCatalog(catalog([{ ...parsed, price: undefined }])).products[0].price, undefined);
+  assert.equal(newProduct().price, undefined);
+});
+
+test('分类和材质去空白去重，忽略空值或异常值，并随作品变化更新', () => {
+  const products = [
+    { ...product(), category: ' 项链 ', material: '925银' },
+    { ...product(), category: '项链', material: ' 925银 ' },
+    { ...product(), category: '手链', material: '珍珠' },
+    { ...product(), category: ' ', material: '' },
+    { ...product(), category: null, material: 123 },
+  ] as Product[];
+  const options = getFilterOptions(products);
+  assert.deepEqual(new Set(options.categories), new Set(['项链', '手链']));
+  assert.deepEqual(new Set(options.materials), new Set(['925银', '珍珠']));
+  assert.deepEqual(getFilterOptions([]), { categories: [], materials: [] });
+  assert.equal(getFilterOptions([...products, { ...product(), category: '戒指', material: '黄铜' }]).categories.includes('戒指'), true);
+  assert.deepEqual(getFilterOptions(products.slice(0, 1)), { categories: ['项链'], materials: ['925银'] });
+  assert.equal(products[0].category, ' 项链 ');
+});
+
+test('筛选支持全部、单独分类、单独材质及交集，无匹配返回空列表', () => {
+  const products = [
+    { ...product(), category: ' 项链 ', material: '925银' },
+    { ...product(), category: '手链', material: '925银' },
+    { ...product(), category: '项链', material: '珍珠' },
+    { ...product(), category: '', material: '' },
+  ];
+  assert.deepEqual(filterProducts(products), products);
+  assert.deepEqual(filterProducts(products, '项链'), [products[0], products[2]]);
+  assert.deepEqual(filterProducts(products, '', '925银'), [products[0], products[1]]);
+  assert.deepEqual(filterProducts(products, '项链', '925银'), [products[0]]);
+  assert.deepEqual(filterProducts(products, '手链', '珍珠'), []);
+  assert.deepEqual(filterProducts([], '项链', '925银'), []);
 });
 
 test('清单拒绝缺失名称、超限字段、未知版本和重复作品', () => {
@@ -195,6 +254,19 @@ test('文字编辑不重新上传已有图片', async (context) => {
   const { snapshot, draft } = fixture(catalog([product()])); draft.assets = {}; draft.catalog.products[0].name = '新的名字';
   await publishCatalog(repository, token, snapshot, draft);
   assert.equal(calls.filter((call) => call.url.endsWith('/git/blobs')).length, 1);
+});
+
+test('价格保存到发布清单，无效价格在任何网络写入前被拦截', async (context) => {
+  const calls = mockGitHub(context);
+  const { snapshot, draft } = fixture(catalog([product()]));
+  draft.catalog.products[0].price = -1;
+  await assert.rejects(publishCatalog(repository, token, snapshot, draft), /价格/);
+  assert.equal(calls.length, 0);
+  draft.catalog.products[0].price = 128.5;
+  const result = await publishCatalog(repository, token, snapshot, draft);
+  const manifest = calls.find((call) => call.url.endsWith('/git/blobs') && call.body.encoding === 'utf-8')!;
+  assert.equal(JSON.parse(manifest.body.content).products[0].price, 128.5);
+  assert.equal(result.catalog.products[0].price, 128.5);
 });
 
 test('远端预检冲突时不写入任何对象', async (context) => {

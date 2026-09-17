@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Carousel, Icon, Tag } from 'animal-island-ui-tailwind';
 import { Eye, Flower, Heart, Image, Leaf, Sun, X } from 'lucide-react';
 import Modal from './Modal';
 import { WechatButton } from './Contact';
 import type { Photo, Product } from './catalog';
+import { filterProducts, formatPrice, getFilterOptions } from './catalog';
 import { assetUrl } from './config';
 
 export function PhotoImage({ photo, detail = false, source, retry = true }: { photo: Photo; detail?: boolean; source?: string; retry?: boolean }) {
@@ -47,7 +48,7 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
         {product.category && <Tag color="app-green" variant="soft">{product.category}</Tag>}
         <h3>{product.name}</h3>
         <p className="preserve-lines">{product.description || '一件慢慢完成的小作品，藏着认真生活的心意。'}</p>
-        {(product.material || product.size) && <dl>{product.material && <><dt>材质</dt><dd>{product.material}</dd></>}{product.size && <><dt>尺寸</dt><dd>{product.size}</dd></>}</dl>}
+        <dl>{product.material && <><dt>材质</dt><dd>{product.material}</dd></>}<dt>价格</dt><dd className="detail-price">{formatPrice(product.price)}</dd></dl>
         <div className="detail-signature"><Icon icon={Heart} size={17} /> 手作的温度，就藏在细节里。</div>
       </div>
     </div>
@@ -61,16 +62,29 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
 
 export default function PhotoWall({ products }: { products: Product[] }) {
   const [selected, setSelected] = useState<Product | null>(null);
-  const ordered = [...products].sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+  const [filters, setFilters] = useState({ category: '', material: '' });
+  const options = useMemo(() => getFilterOptions(products), [products]);
+  const ordered = useMemo(() => [...products].sort((first, second) => second.createdAt.localeCompare(first.createdAt)), [products]);
+  const category = options.categories.includes(filters.category) ? filters.category : '';
+  const material = options.materials.includes(filters.material) ? filters.material : '';
+  const filtered = Boolean(category || material);
+  const visible = useMemo(() => filterProducts(ordered, category, material), [ordered, category, material]);
+  const clearFilters = () => setFilters({ category: '', material: '' });
   return <>
     <section className="wall-section" id="works" aria-labelledby="wall-title">
-      <div className="wall-topline"><div><span className="section-dot" /><h2 id="wall-title">手作公告墙</h2><span className="count-label">{products.length} 件小小的心意</span></div><span className="wall-hint"><Icon icon={Eye} size={15} /> 点开照片，看看它的故事</span></div>
+      <div className="wall-topline"><div><span className="section-dot" /><h2 id="wall-title">手作公告墙</h2><span className="count-label">{filtered ? `${visible.length} / ${products.length}` : products.length} 件小小的心意</span></div><span className="wall-hint"><Icon icon={Eye} size={15} /> 点开照片，看看它的故事</span></div>
+      <div className="wall-filters" role="group" aria-label="作品分类筛选">
+        <Button className="filter-all" type={filtered ? 'default' : 'primary'} aria-pressed={!filtered} onClick={clearFilters}>全部</Button>
+        <label className={`filter-field ${category ? 'is-active' : ''}`} htmlFor="wall-category">一级分类<select id="wall-category" value={category} disabled={!options.categories.length} onChange={(event) => setFilters({ category: event.target.value, material })}><option value="">全部分类</option>{options.categories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+        <label className={`filter-field ${material ? 'is-active' : ''}`} htmlFor="wall-material">二级分类 · 材质<select id="wall-material" value={material} disabled={!options.materials.length} onChange={(event) => setFilters({ category, material: event.target.value })}><option value="">全部材质</option>{options.materials.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+      </div>
+      <p className="filter-summary" role="status" aria-live="polite">{filtered ? `当前：${category || '全部分类'} · ${material || '全部材质'}` : '当前：全部作品'} · 共 {visible.length} 件</p>
       <div className={`cork-board ${products.length ? '' : 'is-empty'}`}>
         <span className="board-screw screw-left" aria-hidden="true" /><span className="board-screw screw-right" aria-hidden="true" />
-        {products.length ? <div className="photo-grid">{ordered.map((product, position) => <figure className="photo-memory" key={product.id}>
+        {visible.length ? <div className="photo-grid" key={JSON.stringify([category, material])}>{visible.map((product, position) => <figure className="photo-memory" key={product.id}>
           <Button type="text" className="photo-open" aria-label={`查看作品：${product.name}`} onClick={() => setSelected(product)}><PhotoImage photo={product.photos[0]} retry={false} /></Button>
-          <figcaption><div className="photo-caption-heading"><span className="photo-number">{String(position + 1).padStart(2, '0')}</span><h3>{product.name}</h3><Icon icon={Heart} size={15} /></div>{product.description && <p>{product.description}</p>}{product.category && <span className="photo-category">{product.category}</span>}</figcaption>
-        </figure>)}</div> : <div className="empty-wall">
+          <figcaption><div className="photo-caption-heading"><span className="photo-number">{String(position + 1).padStart(2, '0')}</span><h3>{product.name}</h3><Icon icon={Heart} size={15} /></div>{product.description && <p>{product.description}</p>}{product.category && <span className="photo-category">{product.category}</span>}{product.price !== undefined && <span className="photo-price">{formatPrice(product.price)}</span>}</figcaption>
+        </figure>)}</div> : products.length ? <div className="filtered-empty"><Icon icon={Leaf} size={32} /><h3>暂时没有符合条件的作品</h3><p>换个分类或材质，发现其他小小的心意。</p><Button onClick={clearFilters}>查看全部作品</Button></div> : <div className="empty-wall">
           <div className="tiny-note note-sage" aria-hidden="true"><Icon icon={Leaf} size={25} /><span>慢慢做<br />好好生活</span><i>take your time</i></div>
           <div className="empty-postcard"><span className="postcard-kicker">A NOTE FROM JIANSHI</span><div className="flower-doodle" aria-hidden="true"><Icon icon={Flower} size={76} /><span /><Icon icon={Leaf} size={25} /></div><h3>美好的手作，<br />正在慢慢发生。</h3><p>这面小小的墙，会贴上亲手做的心意。<br />等下一次见面，一起发现新的小美好。</p><div className="postcard-signature">简时手作 <Icon icon={Heart} size={15} /></div></div>
           <div className="tiny-note note-peach" aria-hidden="true"><Icon icon={Sun} size={30} /><span>留一点时间<br />给喜欢的事</span><i>little things, big love</i></div>
