@@ -1,0 +1,50 @@
+name: Publish handmade wall
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_GITHUB_OWNER: ${{ github.repository_owner }}
+          VITE_GITHUB_REPO: ${{ github.event.repository.name }}
+          VITE_GITHUB_BRANCH: ${{ github.ref_name }}
+          VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          VITE_PUBLIC_SITE_URL: ${{ steps.pages.outputs.base_url }}/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
