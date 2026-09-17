@@ -117,8 +117,19 @@ export async function checkPhotoWall(page) {
     await page.cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
     await page.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: width === 390 ? 'reduce' : 'no-preference' }] });
     const layout = await page.evaluate(() => ({ columns: getComputedStyle(document.querySelector('.photo-grid')).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth > innerWidth }));
-    assert.equal(layout.columns, width > 800 ? 4 : width > 480 ? 2 : 1);
+    assert.equal(layout.columns, width > 800 ? 4 : 2);
     assert.equal(layout.overflow, false, `${width}px 页面不应横向溢出`);
+    if (width <= 480) {
+      await page.waitForFunction(() => [...document.querySelectorAll('.photo-memory')].every((card) => card.getAnimations().every((animation) => animation.playState !== 'running')));
+      const cards = await page.evaluate(() => [...document.querySelectorAll('.photo-memory')].map((card) => {
+        const bounds = card.getBoundingClientRect();
+        const photo = card.querySelector('.photo-open').getBoundingClientRect();
+        return { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom, photoWidth: photo.width, contained: card.scrollWidth <= card.clientWidth + 1 };
+      }));
+      assert.ok(cards.every((card) => card.left >= 0 && card.right <= width && card.photoWidth >= 100 && card.contained), `${width}px 双列照片应清晰可见，卡片文字不溢出`);
+      assert.ok(cards[0].right < cards[1].left && cards[2].right < cards[3].left, '每行两张卡片不能重叠');
+      assert.ok(cards[2].top > Math.max(cards[0].bottom, cards[1].bottom), '下一行应位于上一行下方');
+    }
     assert.equal(await page.evaluate(() => document.querySelector('.site-header').textContent.includes('日子慢慢，心意满满')), false, '顶部联系入口应替换原来的文案');
     const contacts = await page.evaluate(() => [...document.querySelectorAll('.footer-contacts .contact-link')].map((element) => {
       const bounds = element.getBoundingClientRect();

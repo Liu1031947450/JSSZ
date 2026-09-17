@@ -317,7 +317,10 @@ textarea::placeholder { color: #999d8a; }
 }
 @media (max-width: 480px) {
   .detail-actions { gap: 8px; }.detail-actions > button { padding-inline: 10px; font-size: 12px; }
-  .photo-grid { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-inline: 1px; }.photo-memory:nth-child(n) { margin: 5px 0 0; }.photo-memory { padding: 9px 9px 14px; }.photo-caption-heading h3 { font-size: 14px; }.photo-memory figcaption p { font-size: 11px; }
+  .cork-board:not(.is-empty) { padding-inline: 12px; border-width: 5px; }
+  .photo-grid { gap: 26px 12px; padding-inline: 0; }.photo-memory:nth-child(n) { margin: 5px 0 0; transform: rotate(-1deg); }.photo-memory:nth-child(even) { transform: rotate(1deg); }.photo-memory { padding: 6px 6px 10px; }
+  .photo-memory:nth-child(n)::before { top: -10px; left: calc(50% - 24px); width: 48px; height: 20px; transform: rotate(-6deg); }.photo-memory:nth-child(n)::after { display: none; }
+  .photo-memory figcaption { padding: 10px 0 0; }.photo-caption-heading { gap: 4px; }.photo-caption-heading h3 { font-size: 12px; }.photo-number { display: none; }.photo-memory figcaption p { font-size: 11px; }.photo-category { max-width: 100%; overflow-wrap: anywhere; }
 }
 @media (max-width: 360px) {
   .site-shell { padding-inline: 16px; }.site-header nav { gap: 12px; font-size: 10px; }.brand { font-size: 16px; }.brand-mark { width: 44px; height: 44px; }.brand small { font-size: 5px; }.cork-board { padding-inline: 20px; }.hero h1 { font-size: 35px; }.hero-subtitle { font-size: 8px; }.count-label { padding-inline: 7px; }.wall-topline > div { gap: 7px; }.about-values p { font-size: 8px; }.empty-postcard p { font-size: 8px; }.empty-postcard h3 { font-size: 18px; }.edit-photos { grid-template-columns: 1fr; }.field-grid { grid-template-columns: 1fr; gap: 0; }.admin-heading { flex-wrap: wrap; }.back-link { min-height: 36px; }
