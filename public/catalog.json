@@ -1,8 +1,30 @@
 {
   "schemaVersion": 1,
-  "revision": "495833fb-9231-4345-bdcb-0910ff346716",
-  "updatedAt": "2026-09-17T03:57:41.597Z",
+  "revision": "f9b0f984-43c1-46e7-a72f-882fb4cd86ed",
+  "updatedAt": "2026-09-17T04:15:05.741Z",
   "products": [
+    {
+      "id": "9df5b386-7ffc-4381-ae55-9862b888f6e1",
+      "name": "测试上传2",
+      "description": "布丁111",
+      "category": "分类02",
+      "material": "布丁22",
+      "size": "12X100",
+      "createdAt": "2026-09-17T04:13:48.676Z",
+      "updatedAt": "2026-09-17T04:14:55.642Z",
+      "photos": [
+        {
+          "id": "1155e2dc-67b7-4461-94c8-9907e476bacd",
+          "src": "images/9df5b386-7ffc-4381-ae55-9862b888f6e1/1155e2dc-67b7-4461-94c8-9907e476bacd-detail.webp",
+          "thumbnail": "images/9df5b386-7ffc-4381-ae55-9862b888f6e1/1155e2dc-67b7-4461-94c8-9907e476bacd-thumb.webp",
+          "width": 900,
+          "height": 1600,
+          "bytes": 78762,
+          "thumbnailBytes": 19738,
+          "alt": "测试上传2 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "3c3d62fb-4728-4747-8a27-f635e450120c",
       "name": "测试上传",
