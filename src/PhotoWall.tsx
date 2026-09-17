@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Carousel, Icon, Tag } from 'animal-island-ui-tailwind';
-import { Eye, Flower, Heart, Image, Leaf, MessageCircle, Sun, X } from 'lucide-react';
+import { Eye, Flower, Heart, Image, Leaf, Sun, X } from 'lucide-react';
 import Modal from './Modal';
+import { WechatButton } from './Contact';
 import type { Photo, Product } from './catalog';
 import { assetUrl } from './config';
-
-const wechatNumber = 'JS-200sz';
 
 export function PhotoImage({ photo, detail = false, source, retry = true }: { photo: Photo; detail?: boolean; source?: string; retry?: boolean }) {
   const [failed, setFailed] = useState(false);
@@ -17,8 +16,6 @@ export function PhotoImage({ photo, detail = false, source, retry = true }: { ph
 export function ProductDetail({ product, onClose, sources = {} }: { product: Product; onClose: () => void; sources?: Record<string, string> }) {
   const [index, setIndex] = useState(0);
   const [closing, setClosing] = useState(false);
-  const [copyingWechat, setCopyingWechat] = useState(false);
-  const [wechatNotice, setWechatNotice] = useState('');
   const lightbox = useRef<HTMLDialogElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -26,26 +23,6 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
     if (closing || lightbox.current?.open) return;
     setClosing(true);
     timer.current = setTimeout(onClose, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 160);
-  }
-  async function copyWechat(event: React.MouseEvent<HTMLButtonElement>) {
-    const button = event.currentTarget;
-    setCopyingWechat(true); setWechatNotice('');
-    let copied = false;
-    try {
-      await navigator.clipboard.writeText(wechatNumber);
-      copied = true;
-    } catch {
-      const input = document.createElement('textarea');
-      input.value = wechatNumber;
-      input.readOnly = true;
-      input.className = 'visually-hidden';
-      button.parentElement?.append(input);
-      try { input.select(); copied = document.execCommand('copy'); }
-      catch { copied = false; }
-      finally { input.remove(); button.focus({ preventScroll: true }); }
-    }
-    setWechatNotice(copied ? '微信号复制成功！打开微信搜索添加' : `复制失败，请手动复制微信号：${wechatNumber}`);
-    setCopyingWechat(false);
   }
   function onLightboxKeyDown(event: React.KeyboardEvent<HTMLDialogElement>) {
     event.stopPropagation();
@@ -56,7 +33,7 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
     const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
     buttons[(current + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
   }
-  return <Modal open title={product.name} width={850} typewriter={false} onClose={close} className={`detail-modal ${closing ? 'is-closing' : ''}`} footer={<div className="detail-footer"><div className="detail-actions"><Button type="primary" onClick={close} icon={<Icon icon={Leaf} size={16} />}>回到作品墙</Button><Button type="primary" loading={copyingWechat} onClick={(event) => void copyWechat(event)} icon={<Icon icon={MessageCircle} size={16} />}>跳转微信咨询</Button></div><p className="wechat-notice" role="status">{wechatNotice}</p></div>}>
+  return <Modal open title={product.name} width={850} typewriter={false} onClose={close} className={`detail-modal ${closing ? 'is-closing' : ''}`} footer={<div className="detail-footer"><div className="detail-actions"><Button type="primary" onClick={close} icon={<Icon icon={Leaf} size={16} />}>回到作品墙</Button><WechatButton>跳转微信咨询</WechatButton></div></div>}>
     <div className="detail-layout">
       <div className="detail-gallery">
         <Carousel activeIndex={index} onChange={setIndex} autoplay={false} showArrows={product.photos.length > 1} showDots={product.photos.length > 1} aria-label="作品照片">

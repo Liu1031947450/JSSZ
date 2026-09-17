@@ -25,8 +25,9 @@ export async function checkPhotoWall(page) {
     });
     assert.deepEqual(layout, { centered: true, stacked: true, textAlign: 'center', contained: true }, '详情标题、图片、资料和按钮应居中，长文本不应横向溢出');
   }
-  async function checkWechatCopy() {
+  async function checkWechatCopy(selector, checkDuration = false) {
     const initialUrl = await page.url();
+    const detailOpen = await page.evaluate(() => Boolean(document.querySelector('.detail-modal')));
     await page.evaluate(() => {
       const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
       const execCommand = document.execCommand;
@@ -48,17 +49,29 @@ export async function checkPhotoWall(page) {
             if (mode === 'error') throw new Error('Copy unavailable');
             if (mode === 'failure' || command !== 'copy') return false;
             const input = document.activeElement;
-            if (!input?.matches('.detail-modal textarea')) return false;
+            if (!input?.matches('textarea.visually-hidden')) return false;
             window.__copiedWechat = input.value.slice(input.selectionStart, input.selectionEnd);
             return true;
           };
         }, mode);
-        await page.click('.detail-actions button:last-child');
-        await page.waitForFunction(() => document.querySelector('.wechat-notice')?.textContent);
+        await page.click(selector);
+        await page.waitForSelector('.contact-notification', { state: 'visible' });
         const success = mode !== 'failure' && mode !== 'error';
-        const result = await page.evaluate(() => ({ text: document.querySelector('.wechat-notice').textContent, copied: window.__copiedWechat, temporaryInputs: document.querySelectorAll('.detail-footer textarea').length, focused: document.activeElement === document.querySelector('.detail-actions button:last-child') }));
-        assert.deepEqual(result, { text: success ? '微信号复制成功！打开微信搜索添加' : '复制失败，请手动复制微信号：JS-200sz', copied: success ? 'JS-200sz' : '', temporaryInputs: 0, focused: true }, `微信复制模式：${mode}`);
+        const result = await page.evaluate((selector) => {
+          const notice = document.querySelector('.contact-notification');
+          const root = notice.closest('.animal-notification-root');
+          const bounds = notice.getBoundingClientRect();
+          return { text: notice.querySelector('.animal-notification-title').textContent, copied: window.__copiedWechat, temporaryInputs: document.querySelectorAll('textarea.visually-hidden').length, focused: document.activeElement === document.querySelector(selector), role: root.getAttribute('role'), floating: getComputedStyle(root).position === 'fixed' && bounds.top >= 0 && bounds.top < 100, contained: bounds.left >= 0 && bounds.right <= innerWidth, inlineNotice: Boolean(document.querySelector('.wechat-notice, .detail-footer .contact-notification, .site-footer .contact-notification')) };
+        }, selector);
+        assert.deepEqual(result, { text: success ? '微信号复制成功！打开微信搜索添加' : '复制失败，请手动复制微信号：JS-200sz', copied: success ? 'JS-200sz' : '', temporaryInputs: 0, focused: true, role: success ? 'status' : 'alert', floating: true, contained: true, inlineNotice: false }, `微信复制模式：${mode}`);
         assert.equal(await page.url(), initialUrl, '微信咨询不应跳转页面');
+        if (checkDuration && mode === 'clipboard') {
+          await page.waitForSelector('.contact-notification', { state: 'hidden', timeout: 6000 });
+        } else {
+          await page.click('.contact-notification .animal-notification-close');
+          await page.waitForSelector('.contact-notification', { state: 'hidden' });
+        }
+        assert.equal(await page.evaluate(() => Boolean(document.querySelector('.detail-modal'))), detailOpen, '关闭浮动消息不应关闭作品详情');
       }
     } finally {
       await page.evaluate(() => { window.__restoreWechatClipboard(); delete window.__restoreWechatClipboard; });
@@ -106,6 +119,21 @@ export async function checkPhotoWall(page) {
     const layout = await page.evaluate(() => ({ columns: getComputedStyle(document.querySelector('.photo-grid')).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth > innerWidth }));
     assert.equal(layout.columns, width > 800 ? 4 : width > 480 ? 2 : 1);
     assert.equal(layout.overflow, false, `${width}px 页面不应横向溢出`);
+    assert.equal(await page.evaluate(() => document.querySelector('.site-header').textContent.includes('日子慢慢，心意满满')), false, '顶部联系入口应替换原来的文案');
+    const contacts = await page.evaluate(() => [...document.querySelectorAll('.footer-contacts .contact-link')].map((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { label: element.getAttribute('aria-label') || element.textContent, href: element.getAttribute('href'), target: element.getAttribute('target'), safe: !element.href || element.rel.includes('noopener'), icon: Boolean(element.querySelector('svg')), touchTarget: bounds.width >= 44 && bounds.height >= 44 };
+    }));
+    assert.deepEqual(contacts.map(({ label, href, target }) => ({ label, href, target })), [
+      { label: '打开抖音个人主页', href: 'https://v.douyin.com/5DgnKMqN27g/', target: '_blank' },
+      { label: '打开小红书个人主页', href: 'https://xhslink.cn/o/9KyCVFtZBCC', target: '_blank' },
+      { label: '打开快手个人主页', href: 'https://live.kuaishou.com/profile/3x4wrxmmgvrfqz4', target: '_blank' },
+      { label: '复制微信号', href: null, target: null },
+    ]);
+    assert.ok(contacts.every(({ safe, icon, touchTarget }) => safe && icon && touchTarget));
+    assert.deepEqual(await page.evaluate(() => ({ afterAbout: document.querySelector('.header-contacts').previousElementSibling?.getAttribute('href') === '#about', header: [...document.querySelectorAll('.header-contacts .contact-link')].map((element) => element.getAttribute('href')), footer: [...document.querySelectorAll('.footer-contacts .contact-link')].map((element) => element.getAttribute('href')) })), { afterAbout: true, header: contacts.map(({ href }) => href), footer: contacts.map(({ href }) => href) }, '顶部关于手作后应展示相同的联系入口，底部保留');
+    await checkWechatCopy('.header-contacts .contact-wechat');
+    await checkWechatCopy('.footer-contacts .contact-wechat', width === 320);
     await page.click('button[aria-label="查看作品：布局验收 1"]');
     await page.waitForSelector('.detail-photo-open', { state: 'visible' });
     console.log(await page.snapshot());
@@ -115,7 +143,7 @@ export async function checkPhotoWall(page) {
       const [back, contact] = buttons.map((button) => button.getBoundingClientRect());
       return { labels: buttons.map((button) => button.textContent), right: contact.left >= back.right, sameRow: Math.abs(contact.top - back.top) < 1 };
     }), { labels: ['回到作品墙', '跳转微信咨询'], right: true, sameRow: true });
-    await checkWechatCopy();
+    await checkWechatCopy('.detail-actions button:last-child', width === 320);
     await checkCenteredDetail();
     for (const alt of ['长幅测试图', '横幅测试图']) {
       if (alt === '横幅测试图') await page.click('button[aria-label="下一张"]');
@@ -155,6 +183,6 @@ export async function checkPhotoWall(page) {
     await page.keyboard.press('Escape');
     await page.waitForSelector('.detail-modal', { state: 'hidden' });
     assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
-    console.log(`${width}px: 微信复制及失败兜底、按钮排列、详情居中、长文本、原比例全屏、关闭方式、焦点及无控制台错误检查通过`);
+    console.log(`${width}px: 顶部与底部联系图标、主页链接、三处微信复制及浮动消息、失败兜底、按钮排列、详情居中、长文本、全屏照片及焦点检查通过`);
   }
 }
