@@ -1,8 +1,30 @@
 {
   "schemaVersion": 1,
-  "revision": "d3a6e98a-718e-4db3-b486-691394f0ed9a",
-  "updatedAt": "2026-09-17T04:25:18.673Z",
+  "revision": "93fbe9da-eaee-4632-b875-26761b6b155d",
+  "updatedAt": "2026-09-17T13:08:42.922Z",
   "products": [
+    {
+      "id": "603d38a6-f8e8-464e-9589-a76e6ce947f6",
+      "name": "S925纯银蛋面耳饰",
+      "description": "111",
+      "category": "耳饰",
+      "material": "S925纯银",
+      "size": "188",
+      "createdAt": "2026-09-17T13:08:19.647Z",
+      "updatedAt": "2026-09-17T13:08:36.173Z",
+      "photos": [
+        {
+          "id": "44a12afd-f6e1-40c7-a3e5-971d813d4ab9",
+          "src": "images/603d38a6-f8e8-464e-9589-a76e6ce947f6/44a12afd-f6e1-40c7-a3e5-971d813d4ab9-detail.webp",
+          "thumbnail": "images/603d38a6-f8e8-464e-9589-a76e6ce947f6/44a12afd-f6e1-40c7-a3e5-971d813d4ab9-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 58506,
+          "thumbnailBytes": 9304,
+          "alt": "S925纯银蛋面耳饰 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "fc62a608-2cb4-459e-b1da-9cb8087f4d55",
       "name": "测试上传3",
