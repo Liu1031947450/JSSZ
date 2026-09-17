@@ -1,8 +1,40 @@
 {
   "schemaVersion": 1,
-  "revision": "f9b0f984-43c1-46e7-a72f-882fb4cd86ed",
-  "updatedAt": "2026-09-17T04:15:05.741Z",
+  "revision": "d3a6e98a-718e-4db3-b486-691394f0ed9a",
+  "updatedAt": "2026-09-17T04:25:18.673Z",
   "products": [
+    {
+      "id": "fc62a608-2cb4-459e-b1da-9cb8087f4d55",
+      "name": "测试上传3",
+      "description": "111",
+      "category": "分类02",
+      "material": "布丁22",
+      "size": "12X100",
+      "createdAt": "2026-09-17T04:24:43.228Z",
+      "updatedAt": "2026-09-17T04:25:12.457Z",
+      "photos": [
+        {
+          "id": "3ece7473-fc0f-4223-a80c-f5aba2c6a9e6",
+          "src": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/3ece7473-fc0f-4223-a80c-f5aba2c6a9e6-detail.webp",
+          "thumbnail": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/3ece7473-fc0f-4223-a80c-f5aba2c6a9e6-thumb.webp",
+          "width": 1600,
+          "height": 1200,
+          "bytes": 128768,
+          "thumbnailBytes": 20872,
+          "alt": "测试上传3 · 照片 1"
+        },
+        {
+          "id": "332f1f62-0d04-4a10-930c-bac2995cd4cc",
+          "src": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/332f1f62-0d04-4a10-930c-bac2995cd4cc-detail.webp",
+          "thumbnail": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/332f1f62-0d04-4a10-930c-bac2995cd4cc-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 151560,
+          "thumbnailBytes": 28614,
+          "alt": "测试上传3 · 照片 2"
+        }
+      ]
+    },
     {
       "id": "9df5b386-7ffc-4381-ae55-9862b888f6e1",
       "name": "测试上传2",
