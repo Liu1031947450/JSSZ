@@ -1,6 +1,29 @@
 {
   "schemaVersion": 1,
-  "revision": "initial",
-  "updatedAt": "2026-09-17T00:00:00.000Z",
-  "products": []
+  "revision": "495833fb-9231-4345-bdcb-0910ff346716",
+  "updatedAt": "2026-09-17T03:57:41.597Z",
+  "products": [
+    {
+      "id": "3c3d62fb-4728-4747-8a27-f635e450120c",
+      "name": "测试上传",
+      "description": "测试上传123123",
+      "category": "分类01",
+      "material": "布丁",
+      "size": "12X100",
+      "createdAt": "2026-09-17T03:35:23.745Z",
+      "updatedAt": "2026-09-17T03:36:05.080Z",
+      "photos": [
+        {
+          "id": "8890f491-8661-4bba-abac-f92f5ba24b41",
+          "src": "images/3c3d62fb-4728-4747-8a27-f635e450120c/8890f491-8661-4bba-abac-f92f5ba24b41-detail.webp",
+          "thumbnail": "images/3c3d62fb-4728-4747-8a27-f635e450120c/8890f491-8661-4bba-abac-f92f5ba24b41-thumb.webp",
+          "width": 1212,
+          "height": 810,
+          "bytes": 30310,
+          "thumbnailBytes": 9036,
+          "alt": "测试上传 · 照片 1"
+        }
+      ]
+    }
+  ]
 }
