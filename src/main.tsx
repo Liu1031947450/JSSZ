@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import 'animal-island-ui/style';
+import 'animal-island-ui-tailwind/style';
 import './styles.css';
 import App from './App';
 

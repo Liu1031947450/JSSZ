@@ -15,15 +15,54 @@ export async function checkPhotoWall(page) {
       const bounds = modal.getBoundingClientRect();
       const gallery = modal.querySelector('.detail-gallery').getBoundingClientRect();
       const copy = modal.querySelector('.detail-copy').getBoundingClientRect();
-      const selectors = ["[id$='-title']", '.detail-gallery', '.detail-copy', "[id$='-body'] + div button"];
+      const selectors = ['.animal-modal-title', '.detail-gallery', '.detail-copy', '.detail-actions'];
       return {
         centered: selectors.every((selector) => { const rect = modal.querySelector(selector).getBoundingClientRect(); return Math.abs(rect.left + rect.width / 2 - bounds.left - bounds.width / 2) < 2; }),
         stacked: copy.top >= gallery.bottom,
         textAlign: getComputedStyle(modal.querySelector('.detail-copy')).textAlign,
-        contained: [...modal.querySelectorAll('[id], .detail-layout, .detail-gallery, .detail-copy, dl, dd')].every((element) => element.scrollWidth <= element.clientWidth + 1),
+        contained: [...modal.querySelectorAll('.animal-modal-title, .animal-modal-body, .detail-layout, .detail-gallery, .detail-copy, .detail-footer, dl, dd')].every((element) => element.scrollWidth <= element.clientWidth + 1),
       };
     });
     assert.deepEqual(layout, { centered: true, stacked: true, textAlign: 'center', contained: true }, '详情标题、图片、资料和按钮应居中，长文本不应横向溢出');
+  }
+  async function checkWechatCopy() {
+    const initialUrl = await page.url();
+    await page.evaluate(() => {
+      const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+      const execCommand = document.execCommand;
+      window.__restoreWechatClipboard = () => {
+        if (clipboard) Object.defineProperty(navigator, 'clipboard', clipboard);
+        else delete navigator.clipboard;
+        document.execCommand = execCommand;
+      };
+    });
+    try {
+      for (const mode of ['clipboard', 'unavailable', 'denied', 'failure', 'error']) {
+        await page.evaluate((mode) => {
+          window.__copiedWechat = '';
+          Object.defineProperty(navigator, 'clipboard', { configurable: true, value: mode === 'unavailable' ? undefined : { writeText: async (text) => {
+            if (mode !== 'clipboard') throw new DOMException('Clipboard denied', 'NotAllowedError');
+            window.__copiedWechat = text;
+          } } });
+          document.execCommand = (command) => {
+            if (mode === 'error') throw new Error('Copy unavailable');
+            if (mode === 'failure' || command !== 'copy') return false;
+            const input = document.activeElement;
+            if (!input?.matches('.detail-modal textarea')) return false;
+            window.__copiedWechat = input.value.slice(input.selectionStart, input.selectionEnd);
+            return true;
+          };
+        }, mode);
+        await page.click('.detail-actions button:last-child');
+        await page.waitForFunction(() => document.querySelector('.wechat-notice')?.textContent);
+        const success = mode !== 'failure' && mode !== 'error';
+        const result = await page.evaluate(() => ({ text: document.querySelector('.wechat-notice').textContent, copied: window.__copiedWechat, temporaryInputs: document.querySelectorAll('.detail-footer textarea').length, focused: document.activeElement === document.querySelector('.detail-actions button:last-child') }));
+        assert.deepEqual(result, { text: success ? '微信号复制成功！打开微信搜索添加' : '复制失败，请手动复制微信号：JS-200sz', copied: success ? 'JS-200sz' : '', temporaryInputs: 0, focused: true }, `微信复制模式：${mode}`);
+        assert.equal(await page.url(), initialUrl, '微信咨询不应跳转页面');
+      }
+    } finally {
+      await page.evaluate(() => { window.__restoreWechatClipboard(); delete window.__restoreWechatClipboard; });
+    }
   }
   const state = await request('/__test/state');
   assert.equal(state.head, 'test-baseline', '请重新启动隔离验收服务，避免覆盖已有测试数据');
@@ -71,6 +110,13 @@ export async function checkPhotoWall(page) {
     await page.waitForSelector('.detail-photo-open', { state: 'visible' });
     console.log(await page.snapshot());
     await checkCenteredDetail();
+    assert.deepEqual(await page.evaluate(() => {
+      const buttons = [...document.querySelectorAll('.detail-actions button')];
+      const [back, contact] = buttons.map((button) => button.getBoundingClientRect());
+      return { labels: buttons.map((button) => button.textContent), right: contact.left >= back.right, sameRow: Math.abs(contact.top - back.top) < 1 };
+    }), { labels: ['回到作品墙', '跳转微信咨询'], right: true, sameRow: true });
+    await checkWechatCopy();
+    await checkCenteredDetail();
     for (const alt of ['长幅测试图', '横幅测试图']) {
       if (alt === '横幅测试图') await page.click('button[aria-label="下一张"]');
       const trigger = `button[aria-label="全屏查看：${alt}"]`;
@@ -82,7 +128,7 @@ export async function checkPhotoWall(page) {
         const photo = dialog.querySelector('img');
         const bounds = photo.getBoundingClientRect();
         const container = dialog.querySelector('.photo-lightbox-image').getBoundingClientRect();
-        return { ratio: bounds.width / bounds.height, naturalRatio: photo.naturalWidth / photo.naturalHeight, contained: bounds.top >= container.top - 1 && bounds.bottom <= container.bottom + 1 && bounds.left >= container.left - 1 && bounds.right <= container.right + 1, height: dialog.getBoundingClientRect().height, viewportHeight: innerHeight, focusInside: dialog.contains(document.activeElement), scrollLocked: document.body.style.overflow === 'hidden', motion: getComputedStyle(dialog).animationDuration };
+        return { ratio: bounds.width / bounds.height, naturalRatio: photo.naturalWidth / photo.naturalHeight, contained: bounds.top >= container.top - 1 && bounds.bottom <= container.bottom + 1 && bounds.left >= container.left - 1 && bounds.right <= container.right + 1, height: dialog.getBoundingClientRect().height, viewportHeight: innerHeight, focusInside: dialog.contains(document.activeElement), scrollLocked: getComputedStyle(document.body).overflow === 'hidden', motion: getComputedStyle(dialog).animationDuration };
       });
       assert.ok(Math.abs(image.ratio - image.naturalRatio) < .01, '图片应保持原比例');
       assert.equal(image.contained, true, '完整图片应位于遮罩可用范围内');
@@ -109,6 +155,6 @@ export async function checkPhotoWall(page) {
     await page.keyboard.press('Escape');
     await page.waitForSelector('.detail-modal', { state: 'hidden' });
     assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
-    console.log(`${width}px: 详情居中、长文本、原比例全屏、关闭方式、焦点及无控制台错误检查通过`);
+    console.log(`${width}px: 微信复制及失败兜底、按钮排列、详情居中、长文本、原比例全屏、关闭方式、焦点及无控制台错误检查通过`);
   }
 }

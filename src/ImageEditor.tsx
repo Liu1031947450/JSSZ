@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
-import { Button, Icon, Modal } from 'animal-island-ui';
+import { Button, Icon } from 'animal-island-ui-tailwind';
+import { Check } from 'lucide-react';
+import Modal from './Modal';
 import { messageOf } from './catalog';
 import type { Photo } from './catalog';
 import { processImage, readImage } from './images';
@@ -35,7 +37,7 @@ export default function ImageEditor({ file, productId, alt, onSave, onClose }: {
     } catch (reason) { if (mounted.current) setError(messageOf(reason)); }
     finally { if (mounted.current) setBusy(false); }
   }
-  return <Modal open title="给照片留一个好看的画面" width={680} typewriter={false} maskClosable={false} className="crop-modal" onClose={() => { if (!busy) onClose(); }} footer={<><Button disabled={busy} onClick={onClose}>取消</Button><Button type="primary" loading={busy} disabled={!source || !area} onClick={() => void save()} icon={<Icon name="Check" size={16} />}>{busy ? '正在处理图片' : '完成裁剪，加入作品'}</Button></>}>
+  return <Modal open title="给照片留一个好看的画面" width={680} typewriter={false} maskClosable={false} className="crop-modal" onClose={() => { if (!busy) onClose(); }} footer={<><Button disabled={busy} onClick={onClose}>取消</Button><Button type="primary" loading={busy} disabled={!source || !area} onClick={() => void save()} icon={<Icon icon={Check} size={16} />}>{busy ? '正在处理图片' : '完成裁剪，加入作品'}</Button></>}>
     <p className="muted crop-description">拖动调整位置，双指或滑块缩放；也可聚焦画面后用方向键微调。</p>
     <div className="crop-stage" aria-busy={busy}>
       {source ? <Cropper key={aspect} image={source.url} crop={crop} zoom={zoom} aspect={aspect === 'original' ? source.width / source.height : Number(aspect)} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={(_, pixels) => setArea(pixels)} maxZoom={3} keyboardStep={5} mediaProps={{ alt: '待裁剪的作品照片' }} /> : <p role="status">{error ? '图片未能打开' : '正在检查图片…'}</p>}

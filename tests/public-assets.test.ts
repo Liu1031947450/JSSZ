@@ -2,6 +2,23 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
+test('React 版本与 UI 内嵌的 ReactDOM 开发运行时一致', async () => {
+  const runtime = await readFile(new URL('../node_modules/animal-island-ui-tailwind/dist/es/node_modules/react-dom/cjs/react-dom-client.development.js', import.meta.url), 'utf8');
+  const bundledVersion = runtime.match(/react-dom:\s+([\d.]+)/)?.[1];
+  const [{ version: reactVersion }, { version: domVersion }] = await Promise.all([import('react'), import('react-dom')]);
+  assert.ok(bundledVersion);
+  assert.deepEqual([reactVersion, domVersion], [bundledVersion, bundledVersion]);
+});
+
+test('公开 UI 许可与安装的 MIT 组件库一致，不再依赖旧版 UI', async () => {
+  const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(manifest.dependencies['animal-island-ui-tailwind'], '1.10.0');
+  assert.equal(manifest.dependencies['animal-island-ui'], undefined);
+  const license = await readFile(new URL('../public/animal-island-ui-tailwind-LICENSE.txt', import.meta.url), 'utf8');
+  assert.equal(license, await readFile(new URL('../node_modules/animal-island-ui-tailwind/LICENSE', import.meta.url), 'utf8'));
+  assert.match(license, /^MIT License/);
+});
+
 test('公开 JPEG Logo 不携带 EXIF、XMP、IPTC 或注释元数据', async () => {
   const image = await readFile(new URL('../public/723f445fcaa1fd6b873042c974bb8afa.jpg', import.meta.url));
   assert.equal(image.readUInt16BE(0), 0xffd8);

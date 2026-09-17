@@ -1,6 +1,6 @@
 # 简时手作
 
-个人非商业手工作品公告墙。React + TypeScript + Vite，使用 Animal-Island-UI；没有自建服务器，也没有订单或支付功能。
+个人手工作品公告墙。React + TypeScript + Vite，使用 Animal Island UI Tailwind；没有自建服务器，也没有订单或支付功能。
 
 ## 本地运行
 
@@ -126,6 +126,8 @@ node tests/browser-server.mjs
 
 公告墙在大于 800px 时每行四件作品，481～800px 为两件，480px 及以下为一件。作品详情采用图片在上、资料在下的居中布局，标题、图片说明和底部按钮也居中。详情照片可点击或按 Enter 打开全屏遮罩，按原比例完整展示；关闭按钮、遮罩空白处或 Esc 返回详情，不退出作品详情。
 
+详情底部「回到作品墙」右侧的「跳转微信咨询」在电脑和手机端均复制微信号 `JS-200sz`，成功提示「微信号复制成功！打开微信搜索添加」，不会自动跳转微信。若浏览器禁止复制，则展示微信号供手动复制，不提示成功。
+
 安装了 Ego Browser 时，可在重新启动上述隔离服务后运行以下回归检查。它只在本地测试服务生成四件作品和横、竖测试图，不访问真实 GitHub：
 
 ```sh
@@ -141,9 +143,13 @@ JS
 
 ## 设计来源与许可
 
-Animal-Island-UI **1.12.0**，作者 **guokaigdg**，用于本项目的个人非商业展示。项目来源：<https://github.com/guokaigdg/animal-island-ui>。组件库原始许可证完整保存在 `public/animal-island-ui-LICENSE.txt`，页脚提供可访问入口。
+Animal Island UI Tailwind（`animal-island-ui-tailwind`）**1.10.0**，作者 **lifeodyssey**。项目来源：<https://github.com/lifeodyssey/animal-island-ui-tailwind>。组件库发布包声明采用 **MIT License**，允许免费使用、修改及商用，分发时须保留版权和许可声明；原始许可证完整保存在 `public/animal-island-ui-tailwind-LICENSE.txt`，页脚提供可访问入口。
 
-组件库采用 **CC BY-NC 4.0**，本项目不改变其许可证。不得将此实现直接用于未经授权的商业推广或销售。若未来改变用途，先处理组件库授权及托管平台适用条款。
+已移除旧的 `animal-island-ui` 依赖及其 CC BY-NC 4.0 许可文件。新库通过预编译样式入口 `animal-island-ui-tailwind/style` 接入，无需在应用额外安装或配置 Tailwind；通用图标按新库接口使用 `lucide-react`。此处的 MIT 许可说明仅针对组件库，不替代照片、Logo 等素材的授权，也不代表任天堂官方授权或关联。
+
+组件库统一入口引用的 Radix peer 依赖已在 `package.json` 和锁文件中显式安装，避免开发启动或构建出现缺失导出。`src/Modal.tsx` 统一保留关闭弹窗后返回触发控件的键盘焦点行为。
+
+该版本的组件库在 Notification 模块内嵌了 ReactDOM 19.2.6，开发模式加载统一入口时会校验 React 版本，因此本项目将 `react` / `react-dom` 对齐并固定为 **19.2.6**。待组件库修复内嵌运行时后再一起升级；`npm test` 包含该版本约束检查，避免只验证生产构建而遗漏开发白屏。
 
 照片墙排列参考用户提供的 `marry_me/src/PhotoWall.tsx` 及相关样式，只借鉴胶带、纸框和错位布局；没有复制其中的私人照片或故事。
 
