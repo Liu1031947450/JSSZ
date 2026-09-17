@@ -124,6 +124,21 @@ node tests/browser-server.mjs
 
 浏览器验收需覆盖 320、390、768、1024、1440px，无横向溢出；覆盖键盘焦点、Esc、移动端裁剪、图片失败、配额错误、未授权写入和减少动画。模拟流程通过不等于真实 GitHub 权限、Pages 工作流或跨设备线上发布已验证；正式验收仍需一次真实管理员发布和另一设备读取。
 
+公告墙在大于 800px 时每行四件作品，481～800px 为两件，480px 及以下为一件。详情照片可点击或按 Enter 打开全屏遮罩，按原比例完整展示；关闭按钮、遮罩空白处或 Esc 返回详情，不退出作品详情。
+
+安装了 Ego Browser 时，可在重新启动上述隔离服务后运行以下回归检查。它只在本地测试服务生成四件作品和横、竖测试图，不访问真实 GitHub：
+
+```sh
+ego-browser nodejs <<JS
+const task = await taskSpace('公告墙与全屏图片验收');
+console.log({ taskSpaceId: task.spaceId });
+const { pathToFileURL } = await import('node:url');
+const { checkPhotoWall } = await import(pathToFileURL('$PWD/tests/photo-wall.browser.mjs').href);
+await checkPhotoWall(task.page('p1'));
+await task.finish({ keep: [] });
+JS
+```
+
 ## 设计来源与许可
 
 Animal-Island-UI **1.12.0**，作者 **guokaigdg**，用于本项目的个人非商业展示。项目来源：<https://github.com/guokaigdg/animal-island-ui>。组件库原始许可证完整保存在 `public/animal-island-ui-LICENSE.txt`，页脚提供可访问入口。

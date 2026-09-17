@@ -13,6 +13,7 @@ export function PhotoImage({ photo, detail = false, source, retry = true }: { ph
 export function ProductDetail({ product, onClose, sources = {} }: { product: Product; onClose: () => void; sources?: Record<string, string> }) {
   const [index, setIndex] = useState(0);
   const [closing, setClosing] = useState(false);
+  const lightbox = useRef<HTMLDialogElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   function close() {
@@ -20,13 +21,22 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
     setClosing(true);
     timer.current = setTimeout(onClose, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 160);
   }
-  return <Modal open title={product.name} width={850} typewriter={false} onClose={close} className={`detail-modal ${closing ? 'is-closing' : ''}`} footer={<Button type="primary" onClick={close} icon={<Icon name="Leaf" size={16} />}>回到作品墙</Button>}>
+  function onLightboxKeyDown(event: React.KeyboardEvent<HTMLDialogElement>) {
+    event.stopPropagation();
+    if (event.key !== 'Tab') return;
+    event.preventDefault();
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
+    const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    buttons[(current + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+  }
+  return <><Modal open title={product.name} width={850} typewriter={false} onClose={close} className={`detail-modal ${closing ? 'is-closing' : ''}`} footer={<Button type="primary" onClick={close} icon={<Icon name="Leaf" size={16} />}>回到作品墙</Button>}>
     <div className="detail-layout">
       <div className="detail-gallery">
         <Carousel activeIndex={index} onChange={setIndex} autoplay={false} showArrows={product.photos.length > 1} showDots={product.photos.length > 1} aria-label="作品照片">
-          {product.photos.map((photo) => <div className="detail-slide" key={photo.id}><PhotoImage photo={photo} detail source={sources[photo.src]} /></div>)}
+          {product.photos.map((photo) => <div className="detail-slide" key={photo.id}><button type="button" className="detail-photo-open" aria-label={`全屏查看：${photo.alt}`} onClick={() => lightbox.current?.showModal()}><PhotoImage photo={photo} detail source={sources[photo.src]} retry={false} /></button></div>)}
         </Carousel>
         <p className="image-caption" aria-live="polite">{String(index + 1).padStart(2, '0')} / {String(product.photos.length).padStart(2, '0')}<span>{product.photos[index]?.alt}</span></p>
+        <p className="image-preview-hint"><Icon name="Eye" size={14} /> 点击照片，全屏查看</p>
       </div>
       <div className="detail-copy">
         <span className="eyebrow">MADE WITH A LITTLE LOVE</span>
@@ -37,7 +47,13 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
         <div className="detail-signature"><Icon name="Heart" size={17} /> 手作的温度，就藏在细节里。</div>
       </div>
     </div>
-  </Modal>;
+  </Modal>
+    <dialog ref={lightbox} className="photo-lightbox" aria-label={`${product.name}：全屏照片`} onKeyDown={onLightboxKeyDown} onClick={(event) => { if (event.target === event.currentTarget) lightbox.current?.close(); }}>
+      <div className="photo-lightbox-toolbar"><span>{index + 1} / {product.photos.length}</span><Button type="text" className="photo-lightbox-close" aria-label="关闭全屏照片" onClick={() => lightbox.current?.close()} icon={<Icon name="Close" size={22} />}>关闭</Button></div>
+      <div className="photo-lightbox-image"><PhotoImage key={product.photos[index].id} photo={product.photos[index]} detail source={sources[product.photos[index].src]} /></div>
+      <p className="photo-lightbox-caption">{product.photos[index].alt}</p>
+    </dialog>
+  </>;
 }
 
 export default function PhotoWall({ products }: { products: Product[] }) {
