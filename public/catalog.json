@@ -1,149 +1,120 @@
 {
   "schemaVersion": 1,
-  "revision": "8ff34942-b4d8-4843-ad96-0d9aeff8aa56",
-  "updatedAt": "2026-09-18T08:18:02.045Z",
+  "revision": "b68168ad-2e51-42e0-bc87-d2d976d36a4c",
+  "updatedAt": "2026-09-18T13:40:15.696Z",
   "products": [
     {
-      "id": "5d1ecd79-931c-47cb-95e3-31cd33ef9246",
-      "name": "哈哈哈哈",
-      "description": "123123",
-      "category": "项链",
-      "material": "99999纯金",
-      "size": "",
-      "price": 66,
-      "createdAt": "2026-09-18T08:17:28.365Z",
-      "updatedAt": "2026-09-18T08:17:59.062Z",
-      "photos": [
-        {
-          "id": "686f401e-2928-4248-ad87-f4d5298272d8",
-          "src": "images/5d1ecd79-931c-47cb-95e3-31cd33ef9246/686f401e-2928-4248-ad87-f4d5298272d8-detail.webp",
-          "thumbnail": "images/5d1ecd79-931c-47cb-95e3-31cd33ef9246/686f401e-2928-4248-ad87-f4d5298272d8-thumb.webp",
-          "width": 1200,
-          "height": 1600,
-          "bytes": 46744,
-          "thumbnailBytes": 11894,
-          "alt": "哈哈哈哈 · 照片 1"
-        }
-      ]
-    },
-    {
-      "id": "4c60d5c1-40dc-4911-b73e-6aba61140196",
-      "name": "作品名称",
-      "description": "作品简介作品简介作品简介作品简介",
-      "category": "作品分类",
-      "material": "作品材质999纯金",
-      "size": "",
-      "price": 999,
-      "createdAt": "2026-09-18T00:53:08.742Z",
-      "updatedAt": "2026-09-18T00:53:53.194Z",
-      "photos": [
-        {
-          "id": "b1e05208-09af-47e0-824f-20721a0861eb",
-          "src": "images/4c60d5c1-40dc-4911-b73e-6aba61140196/b1e05208-09af-47e0-824f-20721a0861eb-detail.webp",
-          "thumbnail": "images/4c60d5c1-40dc-4911-b73e-6aba61140196/b1e05208-09af-47e0-824f-20721a0861eb-thumb.webp",
-          "width": 1200,
-          "height": 1600,
-          "bytes": 151560,
-          "thumbnailBytes": 28614,
-          "alt": "作品名称 · 照片 1"
-        }
-      ]
-    },
-    {
-      "id": "603d38a6-f8e8-464e-9589-a76e6ce947f6",
-      "name": "S925纯银蛋面耳饰",
-      "description": "111",
-      "category": "耳饰",
+      "id": "cdb6dbdb-cfc6-46ab-a3d8-e8d20c3ffb52",
+      "name": "星月款开口戒指",
+      "description": "",
+      "category": "戒指",
       "material": "S925纯银",
-      "size": "188",
-      "createdAt": "2026-09-17T13:08:19.647Z",
-      "updatedAt": "2026-09-17T13:08:36.173Z",
+      "size": "",
+      "price": 128,
+      "createdAt": "2026-09-18T13:36:21.775Z",
+      "updatedAt": "2026-09-18T13:40:12.949Z",
       "photos": [
         {
-          "id": "44a12afd-f6e1-40c7-a3e5-971d813d4ab9",
-          "src": "images/603d38a6-f8e8-464e-9589-a76e6ce947f6/44a12afd-f6e1-40c7-a3e5-971d813d4ab9-detail.webp",
-          "thumbnail": "images/603d38a6-f8e8-464e-9589-a76e6ce947f6/44a12afd-f6e1-40c7-a3e5-971d813d4ab9-thumb.webp",
-          "width": 1200,
-          "height": 1600,
-          "bytes": 58506,
-          "thumbnailBytes": 9304,
-          "alt": "S925纯银蛋面耳饰 · 照片 1"
-        }
-      ]
-    },
-    {
-      "id": "fc62a608-2cb4-459e-b1da-9cb8087f4d55",
-      "name": "测试上传3",
-      "description": "111",
-      "category": "分类02",
-      "material": "布丁22",
-      "size": "12X100",
-      "createdAt": "2026-09-17T04:24:43.228Z",
-      "updatedAt": "2026-09-17T04:25:12.457Z",
-      "photos": [
-        {
-          "id": "3ece7473-fc0f-4223-a80c-f5aba2c6a9e6",
-          "src": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/3ece7473-fc0f-4223-a80c-f5aba2c6a9e6-detail.webp",
-          "thumbnail": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/3ece7473-fc0f-4223-a80c-f5aba2c6a9e6-thumb.webp",
+          "id": "ecd584d3-8980-4e46-a779-b75ca9732184",
+          "src": "images/cdb6dbdb-cfc6-46ab-a3d8-e8d20c3ffb52/ecd584d3-8980-4e46-a779-b75ca9732184-detail.webp",
+          "thumbnail": "images/cdb6dbdb-cfc6-46ab-a3d8-e8d20c3ffb52/ecd584d3-8980-4e46-a779-b75ca9732184-thumb.webp",
           "width": 1600,
-          "height": 1200,
-          "bytes": 128768,
-          "thumbnailBytes": 20872,
-          "alt": "测试上传3 · 照片 1"
-        },
+          "height": 1600,
+          "bytes": 250226,
+          "thumbnailBytes": 42316,
+          "alt": "星月同辉款戒指 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "ec92d35f-c17e-4af9-b0eb-c687ae8ba08d",
+      "name": "法式中古·冷淡风微镶灵蛇款戒指",
+      "description": "",
+      "category": "戒指",
+      "material": "S925纯银",
+      "size": "",
+      "price": 158,
+      "createdAt": "2026-09-18T13:33:23.451Z",
+      "updatedAt": "2026-09-18T13:36:06.903Z",
+      "photos": [
         {
-          "id": "332f1f62-0d04-4a10-930c-bac2995cd4cc",
-          "src": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/332f1f62-0d04-4a10-930c-bac2995cd4cc-detail.webp",
-          "thumbnail": "images/fc62a608-2cb4-459e-b1da-9cb8087f4d55/332f1f62-0d04-4a10-930c-bac2995cd4cc-thumb.webp",
+          "id": "eb4d2048-d887-4e64-8c3c-05750882adc9",
+          "src": "images/ec92d35f-c17e-4af9-b0eb-c687ae8ba08d/eb4d2048-d887-4e64-8c3c-05750882adc9-detail.webp",
+          "thumbnail": "images/ec92d35f-c17e-4af9-b0eb-c687ae8ba08d/eb4d2048-d887-4e64-8c3c-05750882adc9-thumb.webp",
+          "width": 1280,
+          "height": 1600,
+          "bytes": 196818,
+          "thumbnailBytes": 33858,
+          "alt": "法式中古·冷淡风微镶灵蛇款戒指 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "5fb6a88f-1892-4ec4-85d4-6f2cccee784e",
+      "name": "宫廷风卷草纹花藤雕花款戒指",
+      "description": "",
+      "category": "戒指",
+      "material": "S925纯银",
+      "size": "",
+      "price": 128,
+      "createdAt": "2026-09-18T13:30:43.606Z",
+      "updatedAt": "2026-09-18T13:33:10.931Z",
+      "photos": [
+        {
+          "id": "764c4049-67e4-475b-aec8-82339d08950e",
+          "src": "images/5fb6a88f-1892-4ec4-85d4-6f2cccee784e/764c4049-67e4-475b-aec8-82339d08950e-detail.webp",
+          "thumbnail": "images/5fb6a88f-1892-4ec4-85d4-6f2cccee784e/764c4049-67e4-475b-aec8-82339d08950e-thumb.webp",
           "width": 1200,
           "height": 1600,
-          "bytes": 151560,
-          "thumbnailBytes": 28614,
-          "alt": "测试上传3 · 照片 2"
+          "bytes": 199948,
+          "thumbnailBytes": 33542,
+          "alt": "宫廷风卷草纹花藤雕花款戒指 · 照片 1"
         }
       ]
     },
     {
-      "id": "9df5b386-7ffc-4381-ae55-9862b888f6e1",
-      "name": "测试上传2",
-      "description": "布丁111",
-      "category": "分类02",
-      "material": "布丁22",
-      "size": "12X100",
-      "createdAt": "2026-09-17T04:13:48.676Z",
-      "updatedAt": "2026-09-17T04:14:55.642Z",
+      "id": "fe81a7d4-2eea-47a8-bf59-d91038892b80",
+      "name": "复古竖条肌理款戒指",
+      "description": "",
+      "category": "戒指",
+      "material": "S925纯银",
+      "size": "",
+      "price": 228,
+      "createdAt": "2026-09-18T13:28:03.530Z",
+      "updatedAt": "2026-09-18T13:30:31.754Z",
       "photos": [
         {
-          "id": "1155e2dc-67b7-4461-94c8-9907e476bacd",
-          "src": "images/9df5b386-7ffc-4381-ae55-9862b888f6e1/1155e2dc-67b7-4461-94c8-9907e476bacd-detail.webp",
-          "thumbnail": "images/9df5b386-7ffc-4381-ae55-9862b888f6e1/1155e2dc-67b7-4461-94c8-9907e476bacd-thumb.webp",
-          "width": 900,
+          "id": "73a48f13-1bcc-45ea-8756-3ddc5d587781",
+          "src": "images/fe81a7d4-2eea-47a8-bf59-d91038892b80/73a48f13-1bcc-45ea-8756-3ddc5d587781-detail.webp",
+          "thumbnail": "images/fe81a7d4-2eea-47a8-bf59-d91038892b80/73a48f13-1bcc-45ea-8756-3ddc5d587781-thumb.webp",
+          "width": 1428,
           "height": 1600,
-          "bytes": 78762,
-          "thumbnailBytes": 19738,
-          "alt": "测试上传2 · 照片 1"
+          "bytes": 148856,
+          "thumbnailBytes": 25718,
+          "alt": "手作作品 · 照片 1"
         }
       ]
     },
     {
-      "id": "3c3d62fb-4728-4747-8a27-f635e450120c",
-      "name": "测试上传",
-      "description": "测试上传123123",
-      "category": "分类01",
-      "material": "布丁",
-      "size": "12X100",
-      "createdAt": "2026-09-17T03:35:23.745Z",
-      "updatedAt": "2026-09-17T03:36:05.080Z",
+      "id": "02a1d126-6841-483b-8136-890e8fcf722e",
+      "name": "鸢尾花款戒指",
+      "description": "",
+      "category": "戒指",
+      "material": "S925纯银",
+      "size": "",
+      "price": 158,
+      "createdAt": "2026-09-18T13:25:10.597Z",
+      "updatedAt": "2026-09-18T13:27:05.958Z",
       "photos": [
         {
-          "id": "8890f491-8661-4bba-abac-f92f5ba24b41",
-          "src": "images/3c3d62fb-4728-4747-8a27-f635e450120c/8890f491-8661-4bba-abac-f92f5ba24b41-detail.webp",
-          "thumbnail": "images/3c3d62fb-4728-4747-8a27-f635e450120c/8890f491-8661-4bba-abac-f92f5ba24b41-thumb.webp",
-          "width": 1212,
-          "height": 810,
-          "bytes": 30310,
-          "thumbnailBytes": 9036,
-          "alt": "测试上传 · 照片 1"
+          "id": "5545a6c0-0ebd-49f9-a277-b6e90da27137",
+          "src": "images/02a1d126-6841-483b-8136-890e8fcf722e/5545a6c0-0ebd-49f9-a277-b6e90da27137-detail.webp",
+          "thumbnail": "images/02a1d126-6841-483b-8136-890e8fcf722e/5545a6c0-0ebd-49f9-a277-b6e90da27137-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 158902,
+          "thumbnailBytes": 23598,
+          "alt": "鸢尾花款戒指 · 照片 1"
         }
       ]
     }
