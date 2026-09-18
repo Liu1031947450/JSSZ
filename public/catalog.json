@@ -1,8 +1,123 @@
 {
   "schemaVersion": 1,
-  "revision": "01e152af-076d-426f-b505-104d26eee8aa",
-  "updatedAt": "2026-09-18T13:54:33.355Z",
+  "revision": "20c8857b-45df-48aa-9ea9-fab048315c7d",
+  "updatedAt": "2026-09-18T14:13:44.673Z",
   "products": [
+    {
+      "id": "e2784493-1752-4e49-b4e5-87500e63f08c",
+      "name": "四爪双钻简约纪念戒指",
+      "description": "经典四爪双钻纪念戒指，圆形主石可封存宠物毛发，戒臂对称点缀闪石，细戒简约百搭，手工定制宠物纪念首饰。",
+      "category": "戒指",
+      "material": "S925纯银",
+      "size": "",
+      "price": 128,
+      "createdAt": "2026-09-18T14:08:57.827Z",
+      "updatedAt": "2026-09-18T14:13:05.458Z",
+      "photos": [
+        {
+          "id": "8059b264-219c-400c-bfb6-765a0f6a37ad",
+          "src": "images/e2784493-1752-4e49-b4e5-87500e63f08c/8059b264-219c-400c-bfb6-765a0f6a37ad-detail.webp",
+          "thumbnail": "images/e2784493-1752-4e49-b4e5-87500e63f08c/8059b264-219c-400c-bfb6-765a0f6a37ad-thumb.webp",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 226330,
+          "thumbnailBytes": 36992,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "77d86c02-58d0-477c-ba39-1454d42511a0",
+      "name": "蓝晶藤蔓纪念戒指",
+      "description": "蓝晶藤蔓纪念戒指，舒展立体枝叶造型，雾感蓝色主石可封存宠物毛发，枝叶点缀闪石，森系清新，手工定制宠物纪念首饰。",
+      "category": "戒指",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-18T14:04:17.876Z",
+      "updatedAt": "2026-09-18T14:13:23.808Z",
+      "photos": [
+        {
+          "id": "54a3cfb5-b695-4a12-8fdc-0b42da3c3110",
+          "src": "images/77d86c02-58d0-477c-ba39-1454d42511a0/54a3cfb5-b695-4a12-8fdc-0b42da3c3110-detail.webp",
+          "thumbnail": "images/77d86c02-58d0-477c-ba39-1454d42511a0/54a3cfb5-b695-4a12-8fdc-0b42da3c3110-thumb.webp",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 213752,
+          "thumbnailBytes": 35390,
+          "alt": "蓝晶藤蔓纪念戒指 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "19e4fa05-6c5e-48ab-9bc9-3a24e29a03a7",
+      "name": "银蛇款戒指",
+      "description": "立体银蛇缠绕纪念戒指，蛇身带鳞片肌理与碎钻点缀，中心主石可封存宠物毛发，酷感复古，手工定制宠物纪念首饰。",
+      "category": "戒指",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-18T14:00:51.684Z",
+      "updatedAt": "2026-09-18T14:03:30.086Z",
+      "photos": [
+        {
+          "id": "feb84519-6a2b-4e0c-8153-d42817f63d8c",
+          "src": "images/19e4fa05-6c5e-48ab-9bc9-3a24e29a03a7/feb84519-6a2b-4e0c-8153-d42817f63d8c-detail.webp",
+          "thumbnail": "images/19e4fa05-6c5e-48ab-9bc9-3a24e29a03a7/feb84519-6a2b-4e0c-8153-d42817f63d8c-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 188640,
+          "thumbnailBytes": 32422,
+          "alt": "银蛇款戒指 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "1805f733-9f5c-408c-8a65-46462bb848ee",
+      "name": "星芒款纪念戒指",
+      "description": "复古星芒五角星纪念戒指，中心主石可封存宠物毛发，戒身肌理搭配碎钻点缀，酷感立体造型，手工定制宠物纪念首饰。",
+      "category": "戒指",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-18T13:59:03.041Z",
+      "updatedAt": "2026-09-18T14:00:06.822Z",
+      "photos": [
+        {
+          "id": "b52aaac0-d613-4fab-9a03-085c7b70aeb0",
+          "src": "images/1805f733-9f5c-408c-8a65-46462bb848ee/b52aaac0-d613-4fab-9a03-085c7b70aeb0-detail.webp",
+          "thumbnail": "images/1805f733-9f5c-408c-8a65-46462bb848ee/b52aaac0-d613-4fab-9a03-085c7b70aeb0-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 148462,
+          "thumbnailBytes": 22192,
+          "alt": "星芒款纪念戒指 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "6b320d1a-7697-465f-898c-3c8007788aea",
+      "name": "镂空皇冠款戒指",
+      "description": "复古镂空皇冠纪念戒指，中心主石可封存宠物毛发，围镶细碎闪石，华丽轻盈，手工定制宠物纪念首饰，留存专属偏爱。",
+      "category": "戒指",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-18T13:56:58.814Z",
+      "updatedAt": "2026-09-18T13:58:23.976Z",
+      "photos": [
+        {
+          "id": "d2745529-5bd3-498f-a702-b0fe93164a90",
+          "src": "images/6b320d1a-7697-465f-898c-3c8007788aea/d2745529-5bd3-498f-a702-b0fe93164a90-detail.webp",
+          "thumbnail": "images/6b320d1a-7697-465f-898c-3c8007788aea/d2745529-5bd3-498f-a702-b0fe93164a90-thumb.webp",
+          "width": 1355,
+          "height": 1600,
+          "bytes": 153260,
+          "thumbnailBytes": 25628,
+          "alt": "镂空皇冠款戒指 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "cdb6dbdb-cfc6-46ab-a3d8-e8d20c3ffb52",
       "name": "星月同辉款戒指",
