@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Carousel, Icon, Tag } from 'animal-island-ui-tailwind';
 import { Eye, Flower, Heart, Image, Leaf, Sun, X } from 'lucide-react';
 import Modal from './Modal';
@@ -17,13 +17,35 @@ export function PhotoImage({ photo, detail = false, source, retry = true }: { ph
 export function ProductDetail({ product, onClose, sources = {} }: { product: Product; onClose: () => void; sources?: Record<string, string> }) {
   const [index, setIndex] = useState(0);
   const [closing, setClosing] = useState(false);
+  const [historyId] = useState(() => crypto.randomUUID());
   const lightbox = useRef<HTMLDialogElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
-  function close() {
-    if (closing || lightbox.current?.open) return;
+  const finishClose = useCallback(() => {
+    if (timer.current !== undefined) return;
     setClosing(true);
     timer.current = setTimeout(onClose, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 160);
+  }, [onClose]);
+  useEffect(() => {
+    if (timer.current !== undefined) return;
+    const detailState = { ...window.history.state, productDetail: historyId };
+    if (window.history.state?.productDetail !== historyId) window.history.pushState(detailState, '');
+    const onPopState = () => {
+      if (window.history.state?.productDetail === historyId || timer.current !== undefined) return;
+      if (lightbox.current?.open) {
+        lightbox.current.close();
+        window.history.pushState(detailState, '');
+      } else finishClose();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [historyId, finishClose]);
+  function close() {
+    if (closing || lightbox.current?.open) return;
+    if (window.history.state?.productDetail === historyId) {
+      setClosing(true);
+      window.history.back();
+    } else finishClose();
   }
   function onLightboxKeyDown(event: React.KeyboardEvent<HTMLDialogElement>) {
     event.stopPropagation();

@@ -1,6 +1,49 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
+export async function checkDetailHistory(page, origin = 'http://127.0.0.1:4174') {
+  await page.goto(origin);
+  await page.waitForSelector('.photo-open');
+  await page.cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await page.evaluate(() => {
+    history.replaceState({ detailHistoryTest: true }, '', '#about');
+    history.pushState(history.state, '', '#works');
+  });
+  const baseline = await page.evaluate(() => ({ url: location.href, length: history.length, state: history.state }));
+  const trigger = await page.evaluate(() => document.querySelector('.photo-open').getAttribute('aria-label'));
+  for (const action of ['back', 'button', 'escape', 'mask']) {
+    await page.click('.photo-open >> nth=0');
+    await page.waitForSelector('.detail-modal');
+    assert.deepEqual(await page.evaluate(() => ({ url: location.href, length: history.length, preserved: history.state.detailHistoryTest })), { url: baseline.url, length: baseline.length + 1, preserved: true }, '详情只增加一条历史记录，保留原 URL 和已有状态');
+    if (action === 'back') await page.evaluate(() => history.back());
+    else if (action === 'button') await page.click('.detail-actions button:first-child');
+    else if (action === 'mask') await page.mouse.click(2, 450, { label: '点击详情遮罩关闭' });
+    else await page.keyboard.press('Escape');
+    await page.waitForSelector('.detail-modal', { state: 'hidden' });
+    await page.waitForFunction((label) => document.activeElement?.getAttribute('aria-label') === label, trigger);
+    assert.deepEqual(await page.evaluate(() => ({ url: location.href, state: history.state })), { url: baseline.url, state: baseline.state }, `${action} 关闭详情后留在作品墙并清理详情历史`);
+  }
+  for (const action of ['back', 'button', 'escape']) {
+    await page.click('.photo-open >> nth=0');
+    await page.waitForSelector('.detail-photo-open');
+    await page.click('.detail-photo-open >> nth=0');
+    await page.waitForSelector('dialog:modal');
+    if (action === 'back') await page.evaluate(() => history.back());
+    else if (action === 'button') await page.click('.photo-lightbox-close');
+    else await page.keyboard.press('Escape');
+    await page.waitForSelector('dialog:modal', { state: 'hidden' });
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('.detail-modal'))), true, `${action} 先关闭全屏照片，保留作品详情`);
+    await page.evaluate(() => history.back());
+    await page.waitForSelector('.detail-modal', { state: 'hidden' });
+    assert.deepEqual(await page.evaluate(() => ({ url: location.href, state: history.state })), { url: baseline.url, state: baseline.state }, '全屏照片关闭后只需再返回一次就回到作品墙');
+  }
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => location.hash === '#about');
+  assert.equal(await page.evaluate(() => Boolean(document.querySelector('.detail-modal'))), false, '详情关闭后仍可正常离开作品墙，不遗留空历史记录');
+  assert.deepEqual(await page.evaluate(() => window.__pageErrors || []), []);
+  console.log('手机返回：详情关闭、按钮/Escape/遮罩关闭、全屏逐层返回、重复开关与正常页面返回通过');
+}
+
 export async function checkHeroLayout(page) {
   await page.waitForSelector('.hero');
   await page.evaluate(() => document.fonts.ready);

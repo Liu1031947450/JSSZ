@@ -132,6 +132,8 @@ node tests/browser-server.mjs
 
 浏览器验收需覆盖 320、390、768、1024、1440px，无横向溢出；覆盖键盘焦点、Esc、移动端裁剪、图片失败、配额错误、未授权写入和减少动画。模拟流程通过不等于真实 GitHub 权限、Pages 工作流或跨设备线上发布已验证；正式验收仍需一次真实管理员发布和另一设备读取。
 
+作品详情支持浏览器返回：全屏照片 → 作品详情 → 作品墙；点击关闭或按 Esc 同步回退详情历史，关闭后仍可正常返回上一页。`tests/photo-wall.browser.mjs` 的 `checkDetailHistory(page)` 验收这些路径及重复打开关闭，不涉及 GitHub 写入。
+
 首页 hero 压缩上下留白，使用自适应字号和约 176～220px 的最小高度；内容增多时仍可自然撑高，不裁剪文案。两侧装饰垂直居中，600px 及以下隐藏，给窄屏保留文字空间。
 
 公告墙在大于 800px 时每行四件作品，800px 及以下保持每行两件；480px 及以下缩小公告板留白、卡片间距和装饰，并调整字号以适配窄屏。作品详情在大于 800px 时图片居左、资料居右，800px 及以下保持图片在上、资料在下的居中布局；标题、图片说明和底部按钮始终居中。详情照片可点击或按 Enter 打开全屏遮罩，按原比例完整展示；关闭按钮、遮罩空白处或 Esc 返回详情，不退出作品详情。
@@ -157,8 +159,9 @@ ego-browser nodejs <<JS
 const task = await taskSpace('公告墙与全屏图片验收');
 console.log({ taskSpaceId: task.spaceId });
 const { pathToFileURL } = await import('node:url');
-const { checkPhotoWall, checkHeroLayout, checkFloatingContacts } = await import(pathToFileURL('$PWD/tests/photo-wall.browser.mjs').href);
+const { checkPhotoWall, checkHeroLayout, checkFloatingContacts, checkDetailHistory } = await import(pathToFileURL('$PWD/tests/photo-wall.browser.mjs').href);
 await checkPhotoWall(task.page('p1'));
+await checkDetailHistory(task.page('p1'));
 await checkHeroLayout(task.page('p1'));
 await checkFloatingContacts(task.page('p1'));
 const { checkCatalogEditor, checkBackupImport } = await import(pathToFileURL('$PWD/tests/catalog-editor.browser.mjs').href);
