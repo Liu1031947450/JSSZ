@@ -239,6 +239,8 @@ input, textarea, select { max-width: 100%; }
 .save-status > span { height: 7px; width: 7px; background: #8aa36e; border-radius: 50%; }
 .save-status.saving > span { background: #c1a06a; }.save-status.error > span { background: #b77c71; }
 .admin-workspace { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.4fr); align-items: start; gap: 28px; }
+.admin-page .animal-btn-danger.animal-btn-text { color: #943d32; background: #fff1ed; border-color: #d9aaa0; font-size: 12px; font-weight: 700; min-width: 44px; }
+.admin-page .animal-btn-danger.animal-btn-text:is(:hover, :focus-visible, :active):not(:disabled) { color: #7d3026; background: #fbe0d7; border-color: #bd8072; }
 .works-list, .editor-section { min-width: 0; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
 .section-heading h2 { font-size: 17px; line-height: 1.6; font-weight: 700; }
