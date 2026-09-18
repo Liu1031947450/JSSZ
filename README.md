@@ -85,9 +85,11 @@ fine-grained PAT 的 Contents 权限限制到仓库，而非目录；有此令�
 - 草稿不是永久备份：清理浏览器数据、换浏览器、换设备或系统回收本机存储都可能使草稿丢失。
 - 发布前检查基准提交；更新引用时禁止 `force`。远端发生变化时停止，不自动合并或覆盖内容。
 - 网络中断导致提交结果不明时，先点 **核对远端**。程序根据发布批次识别已完成的提交，不自动重试写入。
-- 核对远端不覆盖本地草稿。发生冲突时先下载草稿备份，再明确选择 **舍弃本地更改**，按需重新应用修改。
+- 核对远端不覆盖本地草稿。发生冲突时先下载草稿备份；可明确选择 **舍弃本地更改** 使用远端内容，或 **导入备份** 将备份整体恢复为本机待发布清单，再手动发布。
 - 每次点击 **新作品** 会先自动核对远端，成功后打开编辑器并在顶部弹出「已自动核对远程」。核对期间禁止重复操作；请求失败、草稿保存失败或远端冲突时停止新建并提示原因，不覆盖本地草稿。
-- 下载的草稿 JSON 包含作品文字及本机图片的 Base64，供离线留档和人工恢复；不包含令牌，不提供自动导入并覆盖远端的功能。
+- **下载草稿备份** 导出作品清单、未完成编辑和全部所需图片的 Base64，不包含令牌或待发布状态。尚未缓存在本机的图片按草稿基准提交从 GitHub 补齐；缺失或损坏时停止导出，避免产生无法完整恢复的文件。
+- **导入备份** 接受本站 `jianshi-draft-backup-v1` JSON（非空且 ≤300MB），校验清单、价格、图片路径、编码、实际图片大小和尺寸。旧版备份仅含本机图片时，会尝试从备份基准提交补齐其余图片；该仓库版本不可读取时停止导入，不用最新图片替代。
+- 导入前显示作品数量和覆盖确认，包含空作品集的清空提醒；确认后重新核对远端，用备份整体替换本机作品集及编辑器，不合并。只有本机存储事务成功后才替换界面；取消、校验失败、网络失败或存储失败均保留当前作品集。导入不修改线上内容，点击 **发布到作品墙** 后才会更新网站，仍保留发布时的远端冲突保护。
 - 删除作品、更换图片会从最新清单和文件树移除旧图片，但 Git 历史、其他人的克隆、缓存或已下载副本仍可能保留旧内容。不要上传隐私图片、身份资料或其他秘密。
 - 素材当前占用超过 200MB 会警告；这不是平台配额。Git 历史的实际大小需另外检查，平台限制、计费或可用性也不受本应用保证。清单超过 1MB 时停止管理读取并提示整理。
 
@@ -106,13 +108,14 @@ git -C JSSZ-backup.git remote update
 
 - `src/PhotoWall.tsx`、`src/styles.css`：公告墙、照片详情、响应式及减少动画。
 - `src/Admin.tsx`：管理授权、作品编辑、草稿与发布状态。
+- `src/backup.ts`：备份格式校验、图片补齐、完整备份导出。
 - `src/ImageEditor.tsx`、`src/images.ts`：文件预览、裁剪、压缩和格式校验。
 - `src/catalog.ts`、`src/storage.ts`、`src/github.ts`：数据边界、IndexedDB、GitHub 原子提交。
 - `public/catalog.json`：版本化公开清单；`public/images/` 由发布流程写入。
 
 ## 验证
 
-`npm test` 使用 Node 内置测试运行器，无额外测试框架；覆盖清单、路径、文件头、权限错误、原子提交、冲突和网络不确定结果。`npm run build` 包含严格 TypeScript 检查。
+`npm test` 使用 Node 内置测试运行器，无额外测试框架；覆盖清单、路径、文件头、备份往返及旧版图片补齐、权限错误、原子提交、冲突和网络不确定结果。`npm run build` 包含严格 TypeScript 检查。
 
 可启动隔离的浏览器验收服务，使用生产构建但模拟 GitHub 和线上部署，**不会请求或写入真实 GitHub**：
 
@@ -158,8 +161,9 @@ const { checkPhotoWall, checkHeroLayout, checkFloatingContacts } = await import(
 await checkPhotoWall(task.page('p1'));
 await checkHeroLayout(task.page('p1'));
 await checkFloatingContacts(task.page('p1'));
-const { checkCatalogEditor } = await import(pathToFileURL('$PWD/tests/catalog-editor.browser.mjs').href);
+const { checkCatalogEditor, checkBackupImport } = await import(pathToFileURL('$PWD/tests/catalog-editor.browser.mjs').href);
 await checkCatalogEditor(task.page('p1'), await task.newPage());
+await checkBackupImport(task.page('p1'));
 await task.finish({ keep: [] });
 JS
 ```

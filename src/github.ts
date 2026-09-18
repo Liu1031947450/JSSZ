@@ -1,4 +1,4 @@
-import { imagePaths, isImagePath, MAX_CATALOG_BYTES, parseCatalog } from './catalog.ts';
+import { DETAIL_BYTES, imagePaths, isImagePath, MAX_CATALOG_BYTES, parseCatalog } from './catalog.ts';
 import type { Catalog, Draft } from './catalog.ts';
 
 export type Repository = { owner: string; repo: string; branch: string };
@@ -72,6 +72,16 @@ export async function readSnapshot(repository: Repository, token: string): Promi
   try { catalog = parseCatalog(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(decoded))); }
   catch { throw new Error('远端作品清单未通过校验，请先修复清单；不会覆盖现有内容'); }
   return { catalog, sha, treeSha: commit.tree.sha };
+}
+
+export async function readBackupImage(repository: Repository, token: string, revision: string, image: string, expectedBytes: number): Promise<Blob> {
+  if (!isImagePath(image) || !/^[a-zA-Z0-9-]{1,80}$/.test(revision)) throw new Error('备份图片路径或基准版本无效');
+  if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 1 || expectedBytes > DETAIL_BYTES) throw new Error('备份图片大小无效');
+  const file = await request<{ content: string; encoding: string; size: number }>(token, `${repositoryPath(repository)}/contents/public/${image}?ref=${encodeURIComponent(revision)}`);
+  if (file.encoding !== 'base64' || file.size !== expectedBytes || typeof file.content !== 'string') throw new Error('备份对应版本的图片不可读取或大小不符');
+  const content = file.content.replace(/\s/g, '');
+  if (content.length !== Math.ceil(expectedBytes / 3) * 4) throw new Error('备份图片编码大小不符');
+  return new Blob([Uint8Array.from(atob(content), character => character.charCodeAt(0))], { type: 'image/webp' });
 }
 
 export async function publishCatalog(repository: Repository, token: string, snapshot: Snapshot, draft: Draft, onProgress: (text: string) => void = () => {}): Promise<Snapshot> {

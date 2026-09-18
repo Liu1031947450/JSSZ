@@ -92,28 +92,34 @@ export function parseCatalog(input: unknown): Catalog {
   if (!/^[a-zA-Z0-9-]+$/.test(revision)) throw new Error('发布批次无效');
   const seen = new Set<string>();
   const products = source.products.map((item): Product => {
-    const product = record(item);
-    const id = text(product.id, 36, '作品 ID', true);
-    if (!uuid.test(id) || seen.has(id)) throw new Error('作品 ID 无效或重复');
-    seen.add(id);
-    if (!Array.isArray(product.photos) || product.photos.length < 1 || product.photos.length > MAX_PHOTOS) throw new Error(`每件作品需要 1～${MAX_PHOTOS} 张照片`);
-    const photoIds = new Set<string>();
-    const photos = product.photos.map((item): Photo => {
-      const photo = record(item);
-      const photoId = text(photo.id, 36, '图片 ID', true);
-      if (!uuid.test(photoId) || photoIds.has(photoId)) throw new Error('图片 ID 无效或重复');
-      photoIds.add(photoId);
-      const src = `images/${id}/${photoId}-detail.webp`;
-      const thumbnail = `images/${id}/${photoId}-thumb.webp`;
-      if (photo.src !== src || photo.thumbnail !== thumbnail) throw new Error('图片只能使用本站作品目录中的安全路径');
-      return { id: photoId, src, thumbnail, width: positive(photo.width, 1600), height: positive(photo.height, 1600), bytes: positive(photo.bytes, DETAIL_BYTES), thumbnailBytes: positive(photo.thumbnailBytes, THUMB_BYTES), alt: text(photo.alt, textLimits.alt, '图片说明', true) };
-    });
-    const price = parsePrice(product.price);
-    return { id, name: text(product.name, textLimits.name, '名称', true), description: text(product.description, textLimits.description, '简介'), category: text(product.category, textLimits.category, '分类'), material: text(product.material, textLimits.material, '材质'), size: text(product.size ?? '', textLimits.size, '旧尺寸'), ...(price === undefined ? {} : { price }), createdAt: date(product.createdAt), updatedAt: date(product.updatedAt), photos };
+    const product = parseProduct(item);
+    if (seen.has(product.id)) throw new Error('作品 ID 无效或重复');
+    seen.add(product.id);
+    return product;
   });
   const catalog: Catalog = { schemaVersion: 1, revision, updatedAt: date(source.updatedAt), products };
   if (new TextEncoder().encode(`${JSON.stringify(catalog, null, 2)}\n`).length > MAX_CATALOG_BYTES) throw new Error('作品清单超过 1MB，请减少作品或精简介绍后再发布');
   return catalog;
+}
+
+export function parseProduct(input: unknown, incomplete = false): Product {
+  const product = record(input);
+  const id = text(product.id, 36, '作品 ID', true);
+  if (!uuid.test(id)) throw new Error('作品 ID 无效或重复');
+  if (!Array.isArray(product.photos) || product.photos.length < (incomplete ? 0 : 1) || product.photos.length > MAX_PHOTOS) throw new Error(`每件作品需要 ${incomplete ? 0 : 1}～${MAX_PHOTOS} 张照片`);
+  const photoIds = new Set<string>();
+  const photos = product.photos.map((item): Photo => {
+    const photo = record(item);
+    const photoId = text(photo.id, 36, '图片 ID', true);
+    if (!uuid.test(photoId) || photoIds.has(photoId)) throw new Error('图片 ID 无效或重复');
+    photoIds.add(photoId);
+    const src = `images/${id}/${photoId}-detail.webp`;
+    const thumbnail = `images/${id}/${photoId}-thumb.webp`;
+    if (photo.src !== src || photo.thumbnail !== thumbnail) throw new Error('图片只能使用本站作品目录中的安全路径');
+    return { id: photoId, src, thumbnail, width: positive(photo.width, 1600), height: positive(photo.height, 1600), bytes: positive(photo.bytes, DETAIL_BYTES), thumbnailBytes: positive(photo.thumbnailBytes, THUMB_BYTES), alt: text(photo.alt, textLimits.alt, '图片说明', !incomplete) };
+  });
+  const price = parsePrice(product.price);
+  return { id, name: text(product.name, textLimits.name, '名称', !incomplete), description: text(product.description, textLimits.description, '简介'), category: text(product.category, textLimits.category, '分类'), material: text(product.material, textLimits.material, '材质'), size: text(product.size ?? '', textLimits.size, '旧尺寸'), ...(price === undefined ? {} : { price }), createdAt: date(product.createdAt), updatedAt: date(product.updatedAt), photos };
 }
 
 export function newProduct(): Product {

@@ -47,6 +47,12 @@ createServer(async (request, response) => {
       if (/^\/repos\/[^/]+\/[^/]+$/.test(path)) return reply({ permissions: { push: true } });
       if (path.includes('/git/ref/heads/')) return reply({ object: { sha: head } });
       if (path.includes('/contents/public/catalog.json')) return reply({ content: Buffer.from(JSON.stringify(catalog)).toString('base64'), encoding: 'base64', size: Buffer.byteLength(JSON.stringify(catalog)) });
+      if (path.includes('/contents/public/images/')) {
+        const commit = commits.get(url.searchParams.get('ref'));
+        const image = blobs.get(trees.get(commit?.tree)?.get(path.split('/contents/')[1]));
+        if (!image) return reply({ message: 'Backup image not found at revision' }, 404);
+        return reply({ content: image.toString('base64'), encoding: 'base64', size: image.length });
+      }
       if (path.endsWith('/git/blobs')) { const sha = randomUUID(); blobs.set(sha, Buffer.from(body.content, body.encoding === 'base64' ? 'base64' : 'utf8')); return reply({ sha }); }
       if (path.endsWith('/git/trees')) {
         const next = new Map(trees.get(body.base_tree));

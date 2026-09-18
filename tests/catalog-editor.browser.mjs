@@ -1,7 +1,109 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+export async function checkBackupImport(page) {
+  const origin = 'http://127.0.0.1:4174';
+  const state = async () => (await fetch(`${origin}/__test/state`)).json();
+  const baseline = await state();
+  assert.ok(baseline.catalog.products.length, '请先运行公告墙和编辑器验收，生成隔离作品与图片');
+  async function login() {
+    await page.waitForSelector('#github-token');
+    await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
+    await page.click('.login-card button[type="submit"]');
+    await page.waitForSelector('.save-status.saved');
+  }
+  async function selectBackup(filename) {
+    await page.setInputFiles('input[aria-label="选择草稿备份文件"]', [filename]);
+    await page.waitForFunction(() => document.querySelector('.animal-modal-title')?.textContent.includes('导入备份并覆盖'));
+  }
+  async function checkOriginalEditor() {
+    assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-name')?.value, document.querySelector('#work-price')?.value]), ['导入前保留内容', '77']);
+  }
+  await page.goto(`${origin}/#/admin`, { waitUntil: 'domcontentloaded' });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await login();
+  await page.click('.draft-actions button:last-child');
+  await page.click('.animal-modal-footer button:last-child');
+  await page.waitForSelector('.save-status.saved');
+  const directory = await mkdtemp(join(tmpdir(), 'jianshi-backup-test-'));
+  try {
+    const backupFile = join(directory, 'full-backup.json');
+    const downloadEvent = page.waitForEvent('download', { timeout: 30_000 });
+    await page.click('.draft-actions button:first-child');
+    await (await downloadEvent).saveAs(backupFile);
+    const payload = JSON.parse(await readFile(backupFile, 'utf8'));
+    assert.deepEqual(payload.catalog, baseline.catalog);
+    assert.equal(Object.keys(payload.assets).length, new Set(payload.catalog.products.flatMap(product => product.photos.flatMap(photo => [photo.src, photo.thumbnail]))).size);
+    assert.equal(payload.pendingRevision, undefined);
+    assert.equal(JSON.stringify(payload).includes('github_pat_'), false);
+    const editingFile = join(directory, 'editing-backup.json');
+    await writeFile(editingFile, JSON.stringify({ ...payload, pendingRevision: 'obsolete', editing: { ...payload.catalog.products[0], name: '备份编辑内容', price: 18.88 } }));
+    await page.click('.work-row-copy button >> nth=0');
+    await page.fill('#work-name', '导入前保留内容');
+    await page.fill('#work-price', '77');
+    await page.waitForSelector('.save-status.saved');
+    await selectBackup(editingFile);
+    await page.click('.animal-modal-footer button:first-child');
+    await page.waitForSelector('.animal-modal-overlay', { state: 'hidden' });
+    await checkOriginalEditor();
+    const invalidFile = join(directory, 'invalid.json');
+    await writeFile(invalidFile, '{broken');
+    await page.setInputFiles('input[aria-label="选择草稿备份文件"]', [invalidFile]);
+    await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('备份未导入'));
+    await checkOriginalEditor();
+    await selectBackup(editingFile);
+    await fetch(`${origin}/__test/control`, { method: 'POST', body: JSON.stringify({ failure: 403 }) });
+    await page.click('.animal-modal-footer button:last-child');
+    await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('导入失败'));
+    await checkOriginalEditor();
+    await selectBackup(editingFile);
+    await page.evaluate(() => {
+      const originalPut = IDBObjectStore.prototype.put;
+      window.__restoreBackupPut = () => { IDBObjectStore.prototype.put = originalPut; delete window.__restoreBackupPut; };
+      IDBObjectStore.prototype.put = function (...args) {
+        if (this.name === 'drafts') throw new DOMException('Test quota failure', 'QuotaExceededError');
+        return originalPut.apply(this, args);
+      };
+    });
+    try {
+      await page.click('.animal-modal-footer button:last-child');
+      await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('导入失败'));
+      await checkOriginalEditor();
+    } finally { await page.evaluate(() => window.__restoreBackupPut()); }
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await login();
+    await checkOriginalEditor();
+    await page.cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
+    await selectBackup(editingFile);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.click('.animal-modal-footer button:last-child');
+    await page.waitForFunction(() => document.querySelector('.animal-notification-root')?.textContent.includes('备份已导入'));
+    assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-name').value, document.querySelector('#work-price').value]), ['备份编辑内容', '18.88'], '同一个作品的编辑器也必须完整恢复，包括非受控价格输入');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await login();
+    assert.equal(await page.evaluate(() => document.querySelector('#work-price').value), '18.88');
+    const emptyFile = join(directory, 'empty-backup.json');
+    await writeFile(emptyFile, JSON.stringify({ ...payload, catalog: { ...payload.catalog, products: [] }, assets: {} }));
+    await selectBackup(emptyFile);
+    assert.equal(await page.evaluate(() => document.querySelector('.confirmation-copy').textContent.includes('清空本机作品集')), true);
+    await page.click('.animal-modal-footer button:last-child');
+    await page.waitForSelector('.empty-workspace');
+    await selectBackup(backupFile);
+    await page.click('.animal-modal-footer button:last-child');
+    await page.waitForFunction(() => document.querySelector('.animal-notification-root')?.textContent.includes('备份已导入'));
+    await page.waitForSelector('.editor-placeholder');
+    await page.waitForSelector('.save-status.saved');
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.work-row h3')].map(heading => heading.textContent)), payload.catalog.products.map(product => product.name));
+    const finalState = await state();
+    assert.equal(finalState.head, baseline.head);
+    assert.deepEqual(finalState.catalog, baseline.catalog);
+    assert.ok(finalState.calls.slice(baseline.calls.length).every(call => call.method === 'GET'), '下载与导入只能读取远端，不能自动发布');
+    assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
+    console.log('备份导出/覆盖/取消/无效文件/网络和存储失败保护/空作品集/编辑器恢复验收通过');
+  } finally { await rm(directory, { recursive: true, force: true }); }
+}
 
 export async function checkNewWorkSync(page) {
   const origin = 'http://127.0.0.1:4174';

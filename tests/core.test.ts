@@ -3,8 +3,9 @@ import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { acknowledgePublication, DETAIL_BYTES, filterProducts, formatBytes, formatPrice, getFilterOptions, imagePaths, isImagePath, MAX_FILE_BYTES, newProduct, parseCatalog, parsePrice, usedBytes, validateFileHeader } from '../src/catalog.ts';
 import type { Catalog, Draft, Product } from '../src/catalog.ts';
-import { authenticate, encodeBase64, fetchPublishedCatalog, GitHubError, publishCatalog, readSnapshot, repositoryPath } from '../src/github.ts';
+import { authenticate, encodeBase64, fetchPublishedCatalog, GitHubError, publishCatalog, readBackupImage, readSnapshot, repositoryPath } from '../src/github.ts';
 import type { Snapshot } from '../src/github.ts';
+import { completeBackupImages, encodeDraftBackup, parseDraftBackup } from '../src/backup.ts';
 
 const repository = { owner: 'test-owner', repo: 'handmade', branch: 'main' };
 const token = 'github_pat_test_only_not_a_real_token';
@@ -341,4 +342,69 @@ test('公开读取禁用缓存、兼容子目录且不携带管理令牌', async
 test('公开读取不会用无效返回值伪装成空墙', async (context) => {
   context.mock.method(globalThis, 'fetch', async () => Response.json({ products: [] }));
   await assert.rejects(fetchPublishedCatalog('https://example.com/'), /版本/);
+});
+
+test('备份可完整往返，保留未完成编辑与空作品集，不恢复待发布状态或额外字段', async () => {
+  const { draft } = fixture();
+  draft.editing = newProduct();
+  const payload = JSON.parse(await (await encodeDraftBackup(draft)).text());
+  assert.equal(payload.format, 'jianshi-draft-backup-v1');
+  assert.equal(payload.pendingRevision, undefined);
+  const restored = parseDraftBackup({ ...payload, pendingRevision: 'old-release', token: 'not-imported' });
+  assert.deepEqual(restored.catalog, draft.catalog);
+  assert.deepEqual(restored.editing, draft.editing);
+  assert.equal(restored.pendingRevision, undefined);
+  assert.equal('token' in restored, false);
+  for (const path of imagePaths(draft.catalog)) assert.deepEqual(new Uint8Array(await restored.assets[path].arrayBuffer()), webp);
+  assert.deepEqual(parseDraftBackup({ ...payload, catalog: catalog(), assets: {}, editing: undefined }).catalog.products, []);
+  await assert.rejects(encodeDraftBackup({ ...draft, assets: {} }), /不完整/);
+  assert.throws(() => parseCatalog(catalog([draft.editing!])), /照片|名称/);
+});
+
+test('导入拒绝无效格式、价格、重复作品、危险路径和损坏的图片编码', async () => {
+  const { draft } = fixture();
+  const payload = JSON.parse(await (await encodeDraftBackup(draft)).text());
+  const path = imagePaths(draft.catalog)[0];
+  for (const invalid of [null, [], { ...payload, format: 'unknown' }, { ...payload, baseSha: '../main' }, { ...payload, savedAt: 'invalid' }, { ...payload, assets: [] }, { ...payload, catalog: catalog([{ ...product(), price: -1 }]) }, { ...payload, catalog: catalog([product(), product()]) }, { ...payload, assets: { '../config.json': payload.assets[path] } }, { ...payload, editing: { ...newProduct(), price: -1 } }]) {
+    assert.throws(() => parseDraftBackup(invalid));
+  }
+  for (const asset of [{ type: 'image/svg+xml', base64: encodeBase64(webp) }, { type: 'image/webp', base64: '!' }, { type: 'image/webp', base64: encodeBase64(new Uint8Array(12)) }, { type: 'image/webp', base64: encodeBase64(webp.subarray(0, 11)) }]) {
+    assert.throws(() => parseDraftBackup({ ...payload, assets: { ...payload.assets, [path]: asset } }));
+  }
+});
+
+test('旧备份按基准版本补齐图片且只读取，缺失、解码或尺寸错误不修改原备份', async (context) => {
+  const { draft } = fixture();
+  draft.catalog.products[0].photos[0].width = 400;
+  draft.catalog.products[0].photos[0].height = 400;
+  const payload = JSON.parse(await (await encodeDraftBackup(draft)).text());
+  const legacy = parseDraftBackup({ ...payload, assets: {} });
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'createImageBitmap');
+  let invalidImage = false;
+  let wrongSize = false;
+  let closed = 0;
+  Object.defineProperty(globalThis, 'createImageBitmap', { configurable: true, value: async () => {
+    if (invalidImage) throw new Error('bad image');
+    return { width: wrongSize ? 500 : 400, height: 400, close: () => { closed += 1; } };
+  } });
+  context.after(() => { if (descriptor) Object.defineProperty(globalThis, 'createImageBitmap', descriptor); else Reflect.deleteProperty(globalThis, 'createImageBitmap'); });
+  let failure = false;
+  const calls = mockGitHub(context, () => failure ? Response.json({}, { status: 404 }) : Response.json({ content: encodeBase64(webp), encoding: 'base64', size: webp.length }));
+  const loadImage = (path: string, bytes: number) => readBackupImage(repository, token, legacy.baseSha, path, bytes);
+  const complete = await completeBackupImages(legacy, loadImage);
+  assert.deepEqual(Object.keys(complete.assets), imagePaths(draft.catalog));
+  assert.deepEqual(legacy.assets, {});
+  assert.ok(calls.every(call => call.method === 'GET' && new URL(call.url).searchParams.get('ref') === 'baseline'));
+  assert.equal(closed, 2);
+  await completeBackupImages(complete, async () => { throw new Error('完整备份不应读取远端图片'); });
+  failure = true;
+  await assert.rejects(completeBackupImages(legacy, loadImage), /无法.*补齐/);
+  invalidImage = true;
+  await assert.rejects(completeBackupImages(complete, loadImage), /损坏/);
+  invalidImage = false; wrongSize = true;
+  await assert.rejects(completeBackupImages(complete, loadImage), /尺寸/);
+  assert.deepEqual(legacy.assets, {});
+  const before = calls.length;
+  await assert.rejects(readBackupImage(repository, token, 'baseline', '../secret', 12), /路径/);
+  assert.equal(calls.length, before);
 });

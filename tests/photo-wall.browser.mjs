@@ -184,9 +184,15 @@ export async function checkPhotoWall(page) {
     context.fillStyle = '#ba8275'; context.fillRect(0, 0, width, 40);
     context.fillStyle = '#71835e'; context.fillRect(0, height - 40, width, 40);
     const content = canvas.toDataURL('image/webp').split(',')[1];
-    return { width, height, content, bytes: atob(content).length };
+    const thumbnail = document.createElement('canvas');
+    const ratio = Math.min(1, 480 / Math.max(width, height));
+    thumbnail.width = Math.round(width * ratio); thumbnail.height = Math.round(height * ratio);
+    thumbnail.getContext('2d').drawImage(canvas, 0, 0, thumbnail.width, thumbnail.height);
+    const thumbnailContent = thumbnail.toDataURL('image/webp').split(',')[1];
+    return { width, height, content, bytes: atob(content).length, thumbnailContent, thumbnailBytes: atob(thumbnailContent).length };
   }));
   const blobs = await Promise.all(images.map((image) => request('/__github/git/blobs', { content: image.content, encoding: 'base64' })));
+  const thumbnails = await Promise.all(images.map((image) => request('/__github/git/blobs', { content: image.thumbnailContent, encoding: 'base64' })));
   const treeEntries = [];
   const now = new Date().toISOString();
   const products = Array.from({ length: 4 }, (_, position) => {
@@ -195,8 +201,8 @@ export async function checkPhotoWall(page) {
       const photoId = randomUUID();
       const src = `images/${id}/${photoId}-detail.webp`;
       const thumbnail = `images/${id}/${photoId}-thumb.webp`;
-      for (const path of [src, thumbnail]) treeEntries.push({ path: `public/${path}`, sha: blobs[imageIndex].sha });
-      return { id: photoId, src, thumbnail, width: image.width, height: image.height, bytes: image.bytes, thumbnailBytes: image.bytes, alt: imageIndex ? '横幅测试图' : '长幅测试图' };
+      treeEntries.push({ path: `public/${src}`, sha: blobs[imageIndex].sha }, { path: `public/${thumbnail}`, sha: thumbnails[imageIndex].sha });
+      return { id: photoId, src, thumbnail, width: image.width, height: image.height, bytes: image.bytes, thumbnailBytes: image.thumbnailBytes, alt: imageIndex ? '横幅测试图' : '长幅测试图' };
     });
     return { id, name: `布局验收 ${position + 1}`, description: '仅用于本地隔离验收'.repeat(position === 1 ? 80 : 1), category: ['项链', '手链', '戒指', '项链'][position], material: ['925银', '棉线与木珠'.repeat(24), '925银', '珍珠'][position], price: [128.5, 0, undefined, 48][position], size: '12 × 8 cm', createdAt: now, updatedAt: now, photos };
   });

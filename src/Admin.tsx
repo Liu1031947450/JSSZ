@@ -6,8 +6,9 @@ import { Bell, Check, Clock, Folder, Image, Key, Leaf, Lock, Paintbrush, Plus, S
 import Modal from './Modal';
 import { acknowledgePublication, formatBytes, getFilterOptions, IMAGE_BUDGET, imagePaths, MAX_PHOTOS, messageOf, newProduct, parseCatalog, parsePrice, textLimits, usedBytes } from './catalog';
 import type { Draft, Photo, Product } from './catalog';
+import { completeBackupImages, encodeDraftBackup, MAX_BACKUP_BYTES, parseDraftBackup } from './backup';
 import { configured, deploymentUrl, draftKey, repository, siteUrl } from './config';
-import { authenticate, encodeBase64, fetchPublishedCatalog, publishCatalog, readSnapshot } from './github';
+import { authenticate, fetchPublishedCatalog, publishCatalog, readBackupImage, readSnapshot } from './github';
 import type { Snapshot } from './github';
 import { loadDraft, saveDraft } from './storage';
 import ImageEditor from './ImageEditor';
@@ -45,7 +46,9 @@ export default function Admin() {
   const [replaceId, setReplaceId] = useState<string | null>(null);
   const [preview, setPreview] = useState<Product | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const [importVersion, setImportVersion] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLHeadingElement>(null);
   const currentDraft = useRef<Draft | null>(null);
   const writes = useRef<Promise<void>>(Promise.resolve());
@@ -90,7 +93,7 @@ export default function Admin() {
   const options = useMemo(() => getFilterOptions(draft?.catalog.products || []), [draft?.catalog.products]);
   const sources = useMemo(() => Object.fromEntries(Object.entries(assets || {}).map(([path, blob]) => [path, URL.createObjectURL(blob)])), [assets]);
   useEffect(() => () => Object.values(sources).forEach((url) => URL.revokeObjectURL(url)), [sources]);
-  useEffect(() => { if (draft?.editing) editorRef.current?.focus({ preventScroll: true }); }, [draft?.editing?.id]);
+  useEffect(() => { if (draft?.editing) editorRef.current?.focus({ preventScroll: true }); }, [draft?.editing?.id, importVersion]);
 
   useEffect(() => {
     if (!watchRevision) return;
@@ -223,16 +226,53 @@ export default function Admin() {
   }
 
   async function downloadDraft() {
-    if (!draft || busy) return;
-    setBusy(true);
+    if (!draft || !session || busy) return;
+    setBusy(true); setError('');
     try {
-      const encoded = Object.fromEntries(await Promise.all(Object.entries(draft.assets).map(async ([path, blob]) => [path, { type: blob.type, base64: encodeBase64(new Uint8Array(await blob.arrayBuffer())) }])));
-      const payload = { format: 'jianshi-draft-backup-v1', ...draft, assets: encoded };
-      const url = URL.createObjectURL(new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      const complete = await completeBackupImages(draft, (path, bytes) => readBackupImage(repository, session.token, draft.baseSha, path, bytes), setProgress);
+      const url = URL.createObjectURL(await encodeDraftBackup(complete));
       const anchor = document.createElement('a'); anchor.href = url; anchor.download = `jianshi-draft-${new Date().toISOString().slice(0, 10)}.json`; anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (reason) { setError(messageOf(reason)); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setProgress(''); }
+  }
+
+  async function selectBackup(chosen?: File) {
+    if (!chosen || !session || busy || file) return;
+    setBusy(true); setError(''); setSyncNotice(null); setProgress('正在校验备份文件');
+    try {
+      if (!chosen.name.toLowerCase().endsWith('.json') || !chosen.size || chosen.size > MAX_BACKUP_BYTES) throw new Error('请选择非空且不超过 300MB 的 JSON 草稿备份');
+      let payload: unknown;
+      try { payload = JSON.parse((await chosen.text()).replace(/^\uFEFF/, '')); }
+      catch { throw new Error('无法读取备份 JSON，文件可能已损坏'); }
+      const parsed = parseDraftBackup(payload);
+      const backup = await completeBackupImages(parsed, (path, bytes) => readBackupImage(repository, session.token, parsed.baseSha, path, bytes), setProgress);
+      setConfirmation({
+        title: '导入备份并覆盖当前作品集？',
+        description: `备份包含 ${backup.catalog.products.length} 件作品${backup.editing ? '和 1 件未完成编辑' : ''}，将完整替换本机当前 ${currentDraft.current?.catalog.products.length || 0} 件作品及正在编辑的内容，不会合并。${backup.catalog.products.length ? '' : '该备份的作品集为空，导入后将清空本机作品集。'}建议先下载当前草稿备份。导入不会修改线上网站，仍需点击发布才会覆盖线上作品集。`,
+        action: () => void importDraft(backup),
+      });
+    } catch (reason) { setError(`备份未导入：${messageOf(reason)}；当前作品集保持不变`); }
+    finally { setBusy(false); setProgress(''); }
+  }
+
+  async function importDraft(backup: Draft) {
+    if (!session || busy) return;
+    const previousWatch = watchRevision;
+    setBusy(true); setError(''); setWatchRevision(''); setProgress('正在核对远端并保存导入的作品集');
+    try {
+      const remote = await readSnapshot(repository, session.token);
+      const next: Draft = { catalog: backup.catalog, editing: backup.editing, assets: backup.assets, baseSha: remote.sha, savedAt: new Date().toISOString() };
+      await writes.current.catch(() => {});
+      writes.current = saveDraft(draftKey, next);
+      await writes.current;
+      currentDraft.current = next;
+      setImportVersion(version => version + 1);
+      setDraft(next); setSnapshot(remote); setPersistence('saved'); setSaveError(''); setNeedsSync(false); setDeployment('idle'); setPreview(null); setReplaceId(null);
+      const createdAt = Date.now();
+      setSyncNotice({ key: String(createdAt), createdAt, type: 'success', position: 'top', placement: 'top', duration: 5, message: '备份已导入并覆盖本机作品集，点击发布后才会更新网站', className: 'contact-notification' });
+    } catch (reason) { setError(`导入失败：${messageOf(reason)}；当前作品集未被覆盖`); setWatchRevision(previousWatch); }
+    finally { setBusy(false); setProgress(''); }
   }
 
   const editing = draft?.editing;
@@ -252,8 +292,8 @@ export default function Admin() {
       {(conflict || needsSync) && <div className="notice warning"><span>{conflict ? '远端版本已变化，本地草稿保持不动。先下载备份，再核对远端或明确舍弃本地更改。' : '请先「核对远端」确认上次操作结果，再决定是否重新发布。'}</span></div>}
       {deployment !== 'idle' && <div className={`notice ${deployment === 'live' ? 'success' : 'info'}`} role="status"><Icon icon={deployment === 'live' ? Check : Clock} size={19} /><span>{deployment === 'live' ? '网站已更新：已从公开地址读到本次发布的内容。' : deployment === 'waiting' ? '已提交仓库，网站更新中。正在核对公开页面，请稍候…' : '已提交仓库，但尚未确认网站更新。请检查部署任务、公开站点地址与网络。'}<small>{watchRevision}</small></span><a className="text-link" href={deploymentUrl} target="_blank" rel="noreferrer">查看部署 ↗</a>{deployment === 'unconfirmed' && <Button size="small" onClick={() => setWatchAttempt((count) => count + 1)}>重新检查上线</Button>}</div>}
       {totalBytes > IMAGE_BUDGET && <div className="notice warning">当前图片已超过 200MB。Git 历史还会累积旧版本，请备份并评估容量，不宜将仓库当作无限图床。</div>}
-      <div className="admin-workspace"><section className="works-list"><div className="section-heading"><h2>我的作品 <span>{draft?.catalog.products.length || 0}</span></h2><Button size="small" type="primary" disabled={locked || Boolean(editing) || !draft} onClick={() => void addProduct()} icon={<Icon icon={Plus} size={16} />}>新作品</Button></div>{draft?.catalog.products.length ? draft.catalog.products.map((product) => <Card className="work-row" key={product.id}><div className="work-thumbnail"><PhotoImage photo={product.photos[0]} source={sources[product.photos[0].thumbnail]} /></div><div className="work-row-copy"><h3>{product.name}</h3><span>{product.category || '未分类'} · {product.photos.length} 张照片</span><div><Button size="small" type="text" disabled={locked || Boolean(editing)} onClick={() => edit(product)}>编辑</Button><Button size="small" type="text" disabled={locked} onClick={() => setPreview(product)}>预览</Button><Button size="small" type="text" danger disabled={locked || Boolean(editing)} onClick={() => setConfirmation({ title: '将这件作品从墙上取下？', description: '先从本地待发布清单移除，点击发布后才会从网站消失。Git 历史仍可能保留旧照片。', action: () => { if (draft) change({ ...draft, catalog: { ...draft.catalog, products: draft.catalog.products.filter((item) => item.id !== product.id) } }); } })}>删除</Button></div></div></Card>) : <div className="empty-workspace"><Icon icon={Image} size={38} /><h3>从第一件作品开始</h3><p>添加照片，写下它的小故事。<br />准备好了，再一起发布到墙上。</p></div>}<div className="storage-summary"><Icon icon={Folder} size={17} /><span>已加入清单的图片：{formatBytes(totalBytes)}<small>不含本地编辑器和 Git 历史占用</small></span></div><div className="draft-actions"><Button size="small" disabled={!draft || busy} onClick={() => void downloadDraft()}>下载草稿备份</Button><Button size="small" type="text" danger disabled={locked || !draft} onClick={() => setConfirmation({ title: '舍弃本地更改并重新同步？', description: '这会用远端清单替换本机草稿和编辑器。请先下载备份；不会删除远端已发布内容。', action: () => void sync(true) })}>舍弃本地更改</Button></div></section>
-      <section id="work-editor" className="editor-section">{editing ? <Card className="editor-card"><div className="section-heading"><h2 ref={editorRef} tabIndex={-1}>{draft!.catalog.products.some((item) => item.id === editing.id) ? '编辑这份心意' : '记录新的手作'}</h2><Tag color="app-yellow" variant="soft">本地草稿</Tag></div><form onSubmit={saveEditor}><fieldset disabled={locked}>
+      <div className="admin-workspace"><section className="works-list"><div className="section-heading"><h2>我的作品 <span>{draft?.catalog.products.length || 0}</span></h2><Button size="small" type="primary" disabled={locked || Boolean(editing) || !draft} onClick={() => void addProduct()} icon={<Icon icon={Plus} size={16} />}>新作品</Button></div>{draft?.catalog.products.length ? draft.catalog.products.map((product) => <Card className="work-row" key={product.id}><div className="work-thumbnail"><PhotoImage photo={product.photos[0]} source={sources[product.photos[0].thumbnail]} /></div><div className="work-row-copy"><h3>{product.name}</h3><span>{product.category || '未分类'} · {product.photos.length} 张照片</span><div><Button size="small" type="text" disabled={locked || Boolean(editing)} onClick={() => edit(product)}>编辑</Button><Button size="small" type="text" disabled={locked} onClick={() => setPreview(product)}>预览</Button><Button size="small" type="text" danger disabled={locked || Boolean(editing)} onClick={() => setConfirmation({ title: '将这件作品从墙上取下？', description: '先从本地待发布清单移除，点击发布后才会从网站消失。Git 历史仍可能保留旧照片。', action: () => { if (draft) change({ ...draft, catalog: { ...draft.catalog, products: draft.catalog.products.filter((item) => item.id !== product.id) } }); } })}>删除</Button></div></div></Card>) : <div className="empty-workspace"><Icon icon={Image} size={38} /><h3>从第一件作品开始</h3><p>添加照片，写下它的小故事。<br />准备好了，再一起发布到墙上。</p></div>}<div className="storage-summary"><Icon icon={Folder} size={17} /><span>已加入清单的图片：{formatBytes(totalBytes)}<small>不含本地编辑器和 Git 历史占用</small></span></div><div className="draft-actions"><Button size="small" disabled={!draft || locked} onClick={() => void downloadDraft()}>下载草稿备份</Button><Button size="small" disabled={!draft || locked} aria-describedby="backup-help" onClick={() => backupInputRef.current?.click()}>导入备份</Button><Button size="small" type="text" danger disabled={locked || !draft} onClick={() => setConfirmation({ title: '舍弃本地更改并重新同步？', description: '这会用远端清单替换本机草稿和编辑器。请先下载备份；不会删除远端已发布内容。', action: () => void sync(true) })}>舍弃本地更改</Button></div><input ref={backupInputRef} className="visually-hidden" tabIndex={-1} type="file" accept="application/json,.json" aria-label="选择草稿备份文件" disabled={locked || !draft} onChange={(event) => { void selectBackup(event.target.files?.[0]); event.target.value = ''; }} /><p id="backup-help" className="field-help">JSON 备份（≤300MB）；导入覆盖本机作品集，发布后更新网站。</p></section>
+      <section id="work-editor" className="editor-section">{editing ? <Card className="editor-card" key={importVersion}><div className="section-heading"><h2 ref={editorRef} tabIndex={-1}>{draft!.catalog.products.some((item) => item.id === editing.id) ? '编辑这份心意' : '记录新的手作'}</h2><Tag color="app-yellow" variant="soft">本地草稿</Tag></div><form onSubmit={saveEditor}><fieldset disabled={locked}>
         <label htmlFor="work-name">作品名称 <span className="required">*</span></label><Input id="work-name" value={editing.name} maxLength={textLimits.name} required placeholder="给这份心意起一个名字" onChange={(event) => updateEditor({ name: event.target.value })} />
         <label htmlFor="work-description">作品简介</label><textarea id="work-description" value={editing.description} maxLength={textLimits.description} rows={4} placeholder="灵感从哪里来？制作时有什么小故事？" onChange={(event) => updateEditor({ description: event.target.value })} /><span className="field-help count-help">{editing.description.length} / {textLimits.description}</span>
         <div className="field-grid"><div><label htmlFor="work-category">分类</label><Input id="work-category" list="work-category-options" autoComplete="off" allowClear maxLength={textLimits.category} value={editing.category} placeholder="选择已有分类或输入新分类" onChange={(event) => updateEditor({ category: event.target.value })} /></div><div><label htmlFor="work-price">价格（人民币）</label><Input key={editing.id} id="work-price" type="number" inputMode="decimal" min="0" step="0.01" defaultValue={editing.price ?? ''} prefix="¥" suffix="元" aria-describedby="price-help" placeholder="暂未标价" onChange={(event) => {
