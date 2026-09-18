@@ -17,32 +17,48 @@ export function repositoryPath(repository: Repository): string {
 
 const branchPath = (repository: Repository) => repository.branch.split('/').map(encodeURIComponent).join('/');
 
-async function request<Data>(token: string, path: string, body?: unknown, method = body ? 'POST' : 'GET'): Promise<Data> {
-  let response: Response;
+async function withRequestTimeout<Data>(milliseconds: number, run: (signal: AbortSignal) => Promise<Data>, signal?: AbortSignal): Promise<Data> {
+  const controller = new AbortController();
+  const abort = () => controller.abort(signal?.reason);
+  if (signal?.aborted) abort();
+  else signal?.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(() => controller.abort(new DOMException('请求超时，请稍后重试', 'TimeoutError')), milliseconds);
   try {
-    response = await fetch(`https://api.github.com${path}`, {
-      method,
-      headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28', ...(body ? { 'Content-Type': 'application/json' } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
-      cache: 'no-store',
-      redirect: 'error',
-      signal: AbortSignal.timeout(30_000),
-    });
-  } catch {
-    throw new GitHubError('无法连接 GitHub 或请求超时。草稿仍在本机，请检查网络后重新同步');
+    return await run(controller.signal);
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
   }
-  if (!response.ok) {
-    const messages: Record<number, string> = {
-      401: '令牌无效或已过期，请退出并重新输入 fine-grained PAT',
-      403: 'GitHub 拒绝操作：请检查 Contents 读写权限、分支保护及 API 速率限制',
-      404: '找不到仓库、分支或作品清单，请检查配置及令牌的仓库授权',
-      409: '远端已变化或分支状态冲突。草稿已保留，请重新同步，不要强制覆盖',
-      422: 'GitHub 未接受更新：可能存在远端冲突、分支保护或无效配置。请重新同步检查',
-      429: 'GitHub 请求过于频繁，请稍后重试',
-    };
-    throw new GitHubError(messages[response.status] || `GitHub 暂时无法完成请求（${response.status}），草稿已保留`, response.status);
-  }
-  return response.json() as Promise<Data>;
+}
+
+async function request<Data>(token: string, path: string, body?: unknown, method = body ? 'POST' : 'GET'): Promise<Data> {
+  return withRequestTimeout(30_000, async (signal) => {
+    let response: Response;
+    try {
+      response = await fetch(`https://api.github.com${path}`, {
+        method,
+        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+        cache: 'no-store',
+        redirect: 'error',
+        signal,
+      });
+    } catch {
+      throw new GitHubError('无法连接 GitHub 或请求超时。草稿仍在本机，请检查网络后重新同步');
+    }
+    if (!response.ok) {
+      const messages: Record<number, string> = {
+        401: '令牌无效或已过期，请退出并重新输入 fine-grained PAT',
+        403: 'GitHub 拒绝操作：请检查 Contents 读写权限、分支保护及 API 速率限制',
+        404: '找不到仓库、分支或作品清单，请检查配置及令牌的仓库授权',
+        409: '远端已变化或分支状态冲突。草稿已保留，请重新同步，不要强制覆盖',
+        422: 'GitHub 未接受更新：可能存在远端冲突、分支保护或无效配置。请重新同步检查',
+        429: 'GitHub 请求过于频繁，请稍后重试',
+      };
+      throw new GitHubError(messages[response.status] || `GitHub 暂时无法完成请求（${response.status}），草稿已保留`, response.status);
+    }
+    return response.json() as Promise<Data>;
+  });
 }
 
 export function encodeBase64(bytes: Uint8Array): string {
@@ -138,7 +154,9 @@ export async function fetchPublishedCatalog(site: string, signal?: AbortSignal):
   if (!location.pathname.endsWith('/')) location.pathname += '/';
   const url = new URL('catalog.json', location);
   url.searchParams.set('fresh', `${Date.now()}`);
-  const response = await fetch(url, { cache: 'no-store', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000) });
-  if (!response.ok) throw new Error(`作品清单加载失败（${response.status}）`);
-  return parseCatalog(await response.json());
+  return withRequestTimeout(15_000, async (requestSignal) => {
+    const response = await fetch(url, { cache: 'no-store', signal: requestSignal });
+    if (!response.ok) throw new Error(`作品清单加载失败（${response.status}）`);
+    return parseCatalog(await response.json());
+  }, signal);
 }

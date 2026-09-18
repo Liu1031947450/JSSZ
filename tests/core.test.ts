@@ -344,6 +344,68 @@ test('公开读取不会用无效返回值伪装成空墙', async (context) => {
   await assert.rejects(fetchPublishedCatalog('https://example.com/'), /版本/);
 });
 
+test('旧版 iPhone 缺少 AbortSignal.any 和 timeout 时仍能读取作品和连接管理', async (context) => {
+  const expected = catalog([product()]);
+  mockGitHub(context, (call) => call.url.startsWith('https://example.com/') ? Response.json(expected) : undefined);
+  for (const name of ['any', 'timeout']) {
+    const descriptor = Object.getOwnPropertyDescriptor(AbortSignal, name)!;
+    Object.defineProperty(AbortSignal, name, { configurable: true, value: undefined });
+    context.after(() => Object.defineProperty(AbortSignal, name, descriptor));
+    assert.deepEqual(await fetchPublishedCatalog('https://example.com/', new AbortController().signal), expected);
+    assert.deepEqual(await fetchPublishedCatalog('https://example.com/'), expected);
+    assert.equal(await authenticate(repository, token), 'maker');
+  }
+});
+
+test('公开读取保留外部取消并移除监听，已取消请求不等待超时', async (context) => {
+  const controller = new AbortController();
+  const removed = context.mock.method(controller.signal, 'removeEventListener');
+  context.mock.method(globalThis, 'fetch', (_input: unknown, init: RequestInit) => new Promise((_resolve, reject) => {
+    if (init.signal!.aborted) reject(init.signal!.reason);
+    else init.signal!.addEventListener('abort', () => reject(init.signal!.reason), { once: true });
+  }));
+  const reason = new DOMException('页面已关闭', 'AbortError');
+  const pending = fetchPublishedCatalog('https://example.com/', controller.signal);
+  controller.abort(reason);
+  await assert.rejects(pending, (error) => error === reason);
+  assert.equal(removed.mock.callCount(), 1);
+  await assert.rejects(fetchPublishedCatalog('https://example.com/', controller.signal), (error) => error === reason);
+});
+
+test('读取响应正文仍有超时保护，公开读取 15 秒、管理请求 30 秒', async (context) => {
+  const originalSetTimeout = globalThis.setTimeout;
+  const durations: number[] = [];
+  context.mock.method(globalThis, 'setTimeout', (callback: () => void, milliseconds: number) => {
+    durations.push(milliseconds);
+    return originalSetTimeout(callback, 0);
+  });
+  const cleared = context.mock.method(globalThis, 'clearTimeout');
+  context.mock.method(globalThis, 'fetch', async (_input: unknown, init: RequestInit) => ({
+    ok: true,
+    json: () => new Promise((_resolve, reject) => init.signal!.addEventListener('abort', () => reject(init.signal!.reason), { once: true })),
+  }));
+  await assert.rejects(fetchPublishedCatalog('https://example.com/'), { name: 'TimeoutError' });
+  await assert.rejects(authenticate(repository, token), { name: 'TimeoutError' });
+  assert.deepEqual(durations, [15_000, 30_000]);
+  assert.equal(cleared.mock.callCount(), 2);
+});
+
+test('公开读取成功或失败后清理超时和外部取消监听', async (context) => {
+  const controller = new AbortController();
+  const removed = context.mock.method(controller.signal, 'removeEventListener');
+  const cleared = context.mock.method(globalThis, 'clearTimeout');
+  const expected = catalog([product()]);
+  let response = Response.json(expected);
+  context.mock.method(globalThis, 'fetch', async () => response);
+  assert.deepEqual(await fetchPublishedCatalog('https://example.com/', controller.signal), expected);
+  for (const failed of [new Response('', { status: 503 }), Response.json({ products: [] })]) {
+    response = failed;
+    await assert.rejects(fetchPublishedCatalog('https://example.com/', controller.signal));
+  }
+  assert.equal(removed.mock.callCount(), 3);
+  assert.equal(cleared.mock.callCount(), 3);
+});
+
 test('备份可完整往返，保留未完成编辑与空作品集，不恢复待发布状态或额外字段', async () => {
   const { draft } = fixture();
   draft.editing = newProduct();
