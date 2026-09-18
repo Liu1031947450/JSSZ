@@ -81,9 +81,16 @@ export default function PhotoWall({ products }: { products: Product[] }) {
       <p className="filter-summary" role="status" aria-live="polite">{filtered ? `当前：${category || '全部分类'} · ${material || '全部材质'}` : '当前：全部作品'} · 共 {visible.length} 件</p>
       <div className={`cork-board ${products.length ? '' : 'is-empty'}`}>
         <span className="board-screw screw-left" aria-hidden="true" /><span className="board-screw screw-right" aria-hidden="true" />
-        {visible.length ? <div className="photo-grid" key={JSON.stringify([category, material])}>{visible.map((product, position) => <figure className="photo-memory" key={product.id}>
+        {visible.length ? <div className="photo-grid" key={JSON.stringify([category, material])}>{visible.map((product) => <figure className="photo-memory" key={product.id}>
           <Button type="text" className="photo-open" aria-label={`查看作品：${product.name}`} onClick={() => setSelected(product)}><PhotoImage photo={product.photos[0]} retry={false} /></Button>
-          <figcaption><div className="photo-caption-heading"><span className="photo-number">{String(position + 1).padStart(2, '0')}</span><h3>{product.name}</h3><Icon icon={Heart} size={15} /></div>{product.description && <p>{product.description}</p>}{product.category && <span className="photo-category">{product.category}</span>}{product.price !== undefined && <span className="photo-price">{formatPrice(product.price)}</span>}</figcaption>
+          <figcaption>
+            <div className="photo-caption-heading"><h3>{product.name}</h3></div>
+            {(product.category || product.material) && <div className="photo-tags">
+              {product.category && <Tag size="small" color="app-green" variant="soft" className="photo-category"><span title={`分类：${product.category}`}>{product.category}</span></Tag>}
+              {product.material && <Tag size="small" variant="soft" className="photo-material"><span title={`材质：${product.material}`}>{product.material}</span></Tag>}
+            </div>}
+            <span className="photo-price">{formatPrice(product.price)}</span>
+          </figcaption>
         </figure>)}</div> : products.length ? <div className="filtered-empty"><Icon icon={Leaf} size={32} /><h3>暂时没有符合条件的作品</h3><p>换个分类或材质，发现其他小小的心意。</p><Button onClick={clearFilters}>查看全部作品</Button></div> : <div className="empty-wall">
           <div className="tiny-note note-sage" aria-hidden="true"><Icon icon={Leaf} size={25} /><span>慢慢做<br />好好生活</span><i>take your time</i></div>
           <div className="empty-postcard"><span className="postcard-kicker">A NOTE FROM JIANSHI</span><div className="flower-doodle" aria-hidden="true"><Icon icon={Flower} size={76} /><span /><Icon icon={Leaf} size={25} /></div><h3>美好的手作，<br />正在慢慢发生。</h3><p>这面小小的墙，会贴上亲手做的心意。<br />等下一次见面，一起发现新的小美好。</p><div className="postcard-signature">简时手作 <Icon icon={Heart} size={15} /></div></div>

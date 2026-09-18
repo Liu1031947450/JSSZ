@@ -3,6 +3,112 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+export async function checkNewWorkSync(page) {
+  const origin = 'http://127.0.0.1:4174';
+  const state = async () => (await fetch(`${origin}/__test/state`)).json();
+  const names = () => page.evaluate(() => [...document.querySelectorAll('.work-row h3')].map(heading => heading.textContent));
+  async function cancelEditor() {
+    await page.click('.editor-actions button:first-child');
+    await page.click('.animal-modal-footer button:last-child');
+    await page.waitForSelector('.editor-placeholder');
+    await page.waitForSelector('.save-status.saved');
+  }
+  await page.goto(`${origin}/#/admin`);
+  await page.reload();
+  await page.waitForSelector('#github-token');
+  await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
+  await page.click('.login-card button[type="submit"]');
+  await page.waitForSelector('.save-status.saved');
+  await page.click('.draft-actions button:last-child');
+  await page.click('.animal-modal-footer button:last-child');
+  await page.waitForSelector('.save-status.saved');
+  await page.waitForSelector('.editor-placeholder');
+  const baseline = await state();
+  assert.ok(baseline.catalog.products.length > 0, '隔离清单需要至少一件作品');
+  await page.click('.work-row-copy button >> nth=0');
+  await page.fill('#work-name', '自动核对保留本地草稿');
+  await page.click('.editor-actions button[type="submit"]');
+  await page.waitForSelector('.editor-placeholder');
+  await page.waitForSelector('.save-status.saved');
+  const draftNames = await names();
+  for (const width of [390, 1440]) {
+    await page.cdp('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 800 });
+    const before = await state();
+    await page.click('.works-list .section-heading button');
+    await page.waitForSelector('#work-name');
+    await page.waitForFunction(() => document.querySelector('.animal-notification-root[role="status"]')?.textContent.includes('已自动核对远程'));
+    const calls = (await state()).calls.slice(before.calls.length);
+    assert.equal(calls.length, 3, '每次新增只核对一次，发出三次读取请求');
+    assert.ok(calls.every(call => call.method === 'GET'));
+    assert.match(calls[0].path, /\/git\/ref\/heads\//);
+    assert.match(calls[1].path, /\/git\/commits\//);
+    assert.match(calls[2].path, /\/contents\/public\/catalog\.json$/);
+    assert.equal(await page.evaluate(() => document.querySelector('#work-name').value), '');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.deepEqual(await names(), draftNames, '核对后仍保留待发布修改');
+    await cancelEditor();
+  }
+  for (const failure of [429, 403]) {
+    await fetch(`${origin}/__test/control`, { method: 'POST', body: JSON.stringify({ failure }) });
+    const before = await state();
+    await page.click('.works-list .section-heading button');
+    await page.waitForSelector('.admin-page > .notice.error');
+    await page.waitForSelector('.works-list .section-heading button:not([disabled])');
+    assert.equal((await state()).calls.length - before.calls.length, 1, '失败时不自动重试');
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('#work-name'))), false);
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('.animal-notification-root'))), false, '失败不能显示成功消息');
+    assert.deepEqual(await names(), draftNames);
+  }
+  await page.evaluate(() => {
+    const originalPut = IDBObjectStore.prototype.put;
+    window.__restoreDraftPut = () => { IDBObjectStore.prototype.put = originalPut; delete window.__restoreDraftPut; };
+    IDBObjectStore.prototype.put = function (...args) {
+      if (this.name === 'drafts') throw new DOMException('Test quota failure', 'QuotaExceededError');
+      return originalPut.apply(this, args);
+    };
+  });
+  try {
+    await page.click('.works-list .section-heading button');
+    await page.waitForSelector('.save-status.error');
+    await page.waitForSelector('.works-list .section-heading button:not([disabled])');
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('#work-name'))), false);
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('.animal-notification-root'))), false);
+    assert.deepEqual(await names(), draftNames);
+  } finally { await page.evaluate(() => window.__restoreDraftPut()); }
+  await page.evaluate(() => {
+    const originalFetch = window.fetch;
+    window.__restoreSyncFetch = () => { window.fetch = originalFetch; delete window.__restoreSyncFetch; };
+    window.fetch = async (input, init) => {
+      if (String(input).includes('/git/ref/heads/')) await new Promise(resolve => { window.__releaseSync = resolve; });
+      return originalFetch(input, init);
+    };
+  });
+  const beforeSlowCheck = await state();
+  try {
+    await page.click('.works-list .section-heading button');
+    await page.waitForFunction(() => Boolean(window.__releaseSync));
+    assert.equal(await page.evaluate(() => document.querySelector('.works-list .section-heading button').disabled), true);
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('#work-name'))), false, '核对完成前不能打开编辑器');
+    await page.evaluate(() => document.querySelector('.works-list .section-heading button').click());
+  } finally {
+    await page.evaluate(() => { window.__restoreSyncFetch(); window.__releaseSync?.(); delete window.__releaseSync; });
+  }
+  await page.waitForSelector('#work-name');
+  assert.equal((await state()).calls.length - beforeSlowCheck.calls.length, 3, '核对期间重复点击不增加请求');
+  await cancelEditor();
+  await fetch(`${origin}/__test/control`, { method: 'POST', body: JSON.stringify({ advanceHead: true }) });
+  await page.click('.works-list .section-heading button');
+  await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('远端已有新的提交'));
+  assert.equal(await page.evaluate(() => Boolean(document.querySelector('#work-name'))), false);
+  assert.equal(await page.evaluate(() => Boolean(document.querySelector('.animal-notification-root'))), false);
+  assert.deepEqual(await names(), draftNames, '冲突时保留本地草稿');
+  const finalState = await state();
+  assert.deepEqual(finalState.catalog, baseline.catalog, '自动核对不能更改远端作品');
+  assert.ok(finalState.calls.slice(baseline.calls.length).every(call => call.method === 'GET'));
+  assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
+  console.log('新增前自动核对、重复点击、成功提示、保留草稿、限流/权限/存储失败和远端冲突验收通过');
+}
+
 export async function checkCatalogEditor(page, visitor) {
   const origin = 'http://127.0.0.1:4174';
   async function login() {

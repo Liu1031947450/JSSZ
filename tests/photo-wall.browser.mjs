@@ -119,6 +119,22 @@ export async function checkPhotoWall(page) {
     const layout = await page.evaluate(() => ({ columns: getComputedStyle(document.querySelector('.photo-grid')).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth > innerWidth }));
     assert.equal(layout.columns, width > 800 ? 4 : 2);
     assert.equal(layout.overflow, false, `${width}px 页面不应横向溢出`);
+    const captions = await page.evaluate(() => [...document.querySelectorAll('.photo-memory figcaption')].map(caption => ({
+      order: [...caption.children].map(element => element.className),
+      name: caption.querySelector('h3').textContent,
+      tags: [...caption.querySelectorAll('.photo-tags .animal-tag')].map(tag => tag.textContent),
+      price: caption.querySelector('.photo-price').textContent,
+      description: Boolean(caption.querySelector('p')),
+      contained: caption.scrollWidth <= caption.clientWidth + 1,
+    })));
+    assert.deepEqual(captions, products.map((product, position) => ({
+      order: ['photo-caption-heading', 'photo-tags', 'photo-price'],
+      name: product.name,
+      tags: [product.category, product.material],
+      price: ['¥128.50', '¥0.00', '暂未标价', '¥48.00'][position],
+      description: false,
+      contained: true,
+    })), `${width}px 卡片依次展示名称、分类与材质标签、价格，长材质不溢出`);
     const filterOptions = await page.evaluate(() => ({ categories: [...document.querySelector('#wall-category').options].map((option) => option.value), materials: [...document.querySelector('#wall-material').options].map((option) => option.value) }));
     assert.deepEqual(new Set(filterOptions.categories), new Set(['', '项链', '手链', '戒指']));
     assert.equal(filterOptions.categories.length, 4);
