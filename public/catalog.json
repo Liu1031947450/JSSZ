@@ -1,8 +1,31 @@
 {
   "schemaVersion": 1,
-  "revision": "93fbe9da-eaee-4632-b875-26761b6b155d",
-  "updatedAt": "2026-09-17T13:08:42.922Z",
+  "revision": "6be11689-e4d8-4828-8687-46609a566d9c",
+  "updatedAt": "2026-09-18T00:53:57.824Z",
   "products": [
+    {
+      "id": "4c60d5c1-40dc-4911-b73e-6aba61140196",
+      "name": "作品名称",
+      "description": "作品简介作品简介作品简介作品简介",
+      "category": "作品分类",
+      "material": "作品材质999纯金",
+      "size": "",
+      "price": 999,
+      "createdAt": "2026-09-18T00:53:08.742Z",
+      "updatedAt": "2026-09-18T00:53:53.194Z",
+      "photos": [
+        {
+          "id": "b1e05208-09af-47e0-824f-20721a0861eb",
+          "src": "images/4c60d5c1-40dc-4911-b73e-6aba61140196/b1e05208-09af-47e0-824f-20721a0861eb-detail.webp",
+          "thumbnail": "images/4c60d5c1-40dc-4911-b73e-6aba61140196/b1e05208-09af-47e0-824f-20721a0861eb-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 151560,
+          "thumbnailBytes": 28614,
+          "alt": "作品名称 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "603d38a6-f8e8-464e-9589-a76e6ce947f6",
       "name": "S925纯银蛋面耳饰",
