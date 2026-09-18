@@ -1,8 +1,31 @@
 {
   "schemaVersion": 1,
-  "revision": "6be11689-e4d8-4828-8687-46609a566d9c",
-  "updatedAt": "2026-09-18T00:53:57.824Z",
+  "revision": "8ff34942-b4d8-4843-ad96-0d9aeff8aa56",
+  "updatedAt": "2026-09-18T08:18:02.045Z",
   "products": [
+    {
+      "id": "5d1ecd79-931c-47cb-95e3-31cd33ef9246",
+      "name": "哈哈哈哈",
+      "description": "123123",
+      "category": "项链",
+      "material": "99999纯金",
+      "size": "",
+      "price": 66,
+      "createdAt": "2026-09-18T08:17:28.365Z",
+      "updatedAt": "2026-09-18T08:17:59.062Z",
+      "photos": [
+        {
+          "id": "686f401e-2928-4248-ad87-f4d5298272d8",
+          "src": "images/5d1ecd79-931c-47cb-95e3-31cd33ef9246/686f401e-2928-4248-ad87-f4d5298272d8-detail.webp",
+          "thumbnail": "images/5d1ecd79-931c-47cb-95e3-31cd33ef9246/686f401e-2928-4248-ad87-f4d5298272d8-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 46744,
+          "thumbnailBytes": 11894,
+          "alt": "哈哈哈哈 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "4c60d5c1-40dc-4911-b73e-6aba61140196",
       "name": "作品名称",
