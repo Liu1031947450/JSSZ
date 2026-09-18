@@ -111,6 +111,17 @@ export async function checkNewWorkSync(page) {
 
 export async function checkCatalogEditor(page, visitor) {
   const origin = 'http://127.0.0.1:4174';
+  async function checkEditorOptions(products) {
+    for (const field of ['category', 'material']) {
+      const input = await page.evaluate(field => {
+        const input = document.getElementById(`work-${field}`);
+        return { editable: input.type === 'text' && !input.readOnly && !input.disabled, values: [...input.list.options].map(option => option.value) };
+      }, field);
+      const expected = [...new Set(products.map(product => product[field].trim()).filter(Boolean))].sort((first, second) => first.localeCompare(second, 'zh-CN'));
+      assert.equal(input.editable, true, `${field} 既可选已有值，也可自由填写`);
+      assert.deepEqual(input.values, expected, `${field} 候选应来自当前清单，去重并随保存更新`);
+    }
+  }
   async function login() {
     await page.waitForSelector('#github-token');
     await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
@@ -138,6 +149,15 @@ export async function checkCatalogEditor(page, visitor) {
   await page.click('.animal-modal-footer button:last-child');
   await page.waitForSelector('.save-status.saved');
   await page.click('.work-row button >> nth=0');
+  await checkEditorOptions(state.catalog.products);
+  await page.fill('#work-category', '手链');
+  await page.fill('#work-material', '珍珠');
+  await page.waitForSelector('.save-status.saved');
+  await page.reload();
+  await login();
+  assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-category').value, document.querySelector('#work-material').value]), ['手链', '珍珠'], '已有候选值应正常保存为编辑草稿');
+  await page.fill('#work-category', '项链');
+  await page.fill('#work-material', '925银');
   assert.deepEqual(await page.evaluate(() => ({ price: document.querySelector('#work-price').value, type: document.querySelector('#work-price').type, size: Boolean(document.querySelector('#work-size')) })), { price: '128.5', type: 'number', size: false });
   for (const invalid of ['-1', '0.001', '9007199254740992']) {
     await page.fill('#work-price', invalid);
@@ -159,6 +179,7 @@ export async function checkCatalogEditor(page, visitor) {
 
   await page.cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
   await page.click('.works-list .section-heading button');
+  await checkEditorOptions(state.catalog.products);
   await page.fill('#work-name', '分类更新验收');
   await page.fill('#work-category', '耳环');
   await page.fill('#work-material', '黄铜');
@@ -182,6 +203,12 @@ export async function checkCatalogEditor(page, visitor) {
     await page.waitForSelector('.crop-modal', { state: 'hidden' });
   } finally { await rm(directory, { recursive: true, force: true }); }
   await page.click('.editor-actions button[type="submit"]');
+  await page.waitForSelector('.editor-placeholder');
+  await page.click('.work-row-copy button >> nth=0');
+  await checkEditorOptions([...state.catalog.products, { category: '耳环', material: '黄铜' }]);
+  assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-category').value, document.querySelector('#work-material').value]), ['耳环', '黄铜']);
+  await page.click('.editor-actions button:first-child');
+  await page.click('.animal-modal-footer button:last-child');
   await page.waitForSelector('.editor-placeholder');
   await publish();
   await visitor.waitForFunction(() => [...document.querySelector('#wall-category').options].some((option) => option.value === '耳环'));

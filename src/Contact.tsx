@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, NotificationView } from 'animal-island-ui-tailwind';
+import { Button, Icon, NotificationView } from 'animal-island-ui-tailwind';
 import type { NotificationItem } from 'animal-island-ui-tailwind';
+import { ArrowUp, MessageCircle, X } from 'lucide-react';
 
 const wechatNumber = 'JS-200sz';
 
@@ -10,6 +11,7 @@ export function WechatButton({ className, children = '微信' }: { className?: s
   const [copying, setCopying] = useState(false);
   const [notice, setNotice] = useState<NotificationItem | null>(null);
   async function copyWechat(event: React.MouseEvent<HTMLButtonElement>) {
+    if (copying) return;
     const button = event.currentTarget;
     setCopying(true); setNotice(null);
     let copied = false;
@@ -31,9 +33,36 @@ export function WechatButton({ className, children = '微信' }: { className?: s
     setCopying(false);
   }
   return <>
-    <Button type="primary" className={className} aria-label={typeof children === 'string' ? children : '复制微信号'} title={`复制微信号：${wechatNumber}`} loading={copying} onClick={(event) => void copyWechat(event)} icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3C4.6 3 1 5.8 1 9.3c0 2 1.2 3.8 3.1 5l-.8 2.6 3-1.5c.9.2 1.8.3 2.7.3h.6a6.7 6.7 0 0 1-.4-2.2c0-3.8 3.5-6.8 7.8-6.8h.2C16 4.5 12.8 3 9 3Zm-3 4.2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z" /><path d="M23 13.5c0-3-2.7-5.5-6-5.5s-6 2.5-6 5.5 2.7 5.5 6 5.5c.7 0 1.4-.1 2-.3l2.4 1.3-.6-2.2c1.3-1 2.2-2.5 2.2-4.3Zm-8.2-.8a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6Zm4.4 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6Z" /></svg>}>{children}</Button>
+    <Button type="primary" className={className} aria-label={typeof children === 'string' ? children : '复制微信号'} title={`复制微信号：${wechatNumber}`} aria-busy={copying} aria-disabled={copying} onClick={(event) => void copyWechat(event)} icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3C4.6 3 1 5.8 1 9.3c0 2 1.2 3.8 3.1 5l-.8 2.6 3-1.5c.9.2 1.8.3 2.7.3h.6a6.7 6.7 0 0 1-.4-2.2c0-3.8 3.5-6.8 7.8-6.8h.2C16 4.5 12.8 3 9 3Zm-3 4.2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z" /><path d="M23 13.5c0-3-2.7-5.5-6-5.5s-6 2.5-6 5.5 2.7 5.5 6 5.5c.7 0 1.4-.1 2-.3l2.4 1.3-.6-2.2c1.3-1 2.2-2.5 2.2-4.3Zm-8.2-.8a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6Zm4.4 0a.8.8 0 1 1 0-1.6.8.8 0 0 1 0 1.6Z" /></svg>}>{children}</Button>
     {notice && createPortal(<div className="animal-notification-root" role={notice.type === 'success' ? 'status' : 'alert'} aria-live={notice.type === 'success' ? 'polite' : 'assertive'} aria-atomic="true"><div className="animal-notification-group animal-notification-group-top"><NotificationView key={notice.key} item={notice} onRemove={() => setNotice(null)} /></div></div>, document.body)}
   </>;
+}
+
+export function FloatingContacts() {
+  const [visible, setVisible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const header = document.querySelector('.header-contacts');
+    if (!header) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      const hidden = !entry.isIntersecting && entry.boundingClientRect.bottom <= 0;
+      setVisible(hidden);
+      if (!hidden) setExpanded(false);
+    });
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+  if (!visible) return null;
+  return <aside className={`floating-contacts ${expanded ? 'is-expanded' : ''}`} aria-label="快捷联系与返回顶部" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setExpanded(false); }} onKeyDown={(event) => { if (event.key === 'Escape' && expanded) { setExpanded(false); toggle.current?.focus(); } }}>
+    <Button ref={toggle} type="text" className="floating-contact-toggle" aria-label={expanded ? '收起联系方式' : '展开联系方式'} aria-expanded={expanded} aria-controls="floating-contact-panel" onClick={() => setExpanded(!expanded)}><Icon icon={expanded ? X : MessageCircle} size={20} /><span>联系</span></Button>
+    <div id="floating-contact-panel"><ContactLinks className="floating-contact-links" /></div>
+    <Button type="text" className="floating-back-top" aria-label="返回顶部" title="返回顶部" onClick={() => {
+      setExpanded(false);
+      window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+      document.querySelector<HTMLAnchorElement>('.header-contacts a')?.focus({ preventScroll: true });
+    }}><Icon icon={ArrowUp} size={21} /></Button>
+  </aside>;
 }
 
 export default function ContactLinks({ className = 'footer-contacts' }: { className?: string }) {

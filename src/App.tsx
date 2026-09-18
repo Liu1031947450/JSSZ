@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { Button, Icon } from 'animal-island-ui-tailwind';
 import { Flower, Gift, Heart, Leaf, Wifi } from 'lucide-react';
 import PhotoWall from './PhotoWall';
-import ContactLinks from './Contact';
+import ContactLinks, { FloatingContacts } from './Contact';
 import type { Catalog } from './catalog';
 import { messageOf } from './catalog';
 import { assetUrl, basePath } from './config';
@@ -51,5 +51,6 @@ export default function App() {
       </>}
     </main>
     <footer className="site-footer"><div className="footer-signature"><Icon icon={Leaf} size={17} /><span>慢慢做，好好生活。</span></div><ContactLinks /><div className="footer-bottom"><small>© {new Date().getFullYear()} 简时手作 · 个人作品展示</small><div><a href={assetUrl('animal-island-ui-tailwind-LICENSE.txt')} target="_blank" rel="noreferrer">UI: Animal Island UI Tailwind · MIT</a><a className="admin-entry" href="#/admin" aria-label="进入管理工作台" title="管理工作台"><Icon icon={Leaf} size={16} /></a></div></div></footer>
+    <FloatingContacts />
   </div>;
 }

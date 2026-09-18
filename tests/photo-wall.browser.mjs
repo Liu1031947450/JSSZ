@@ -1,6 +1,78 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
+export async function checkHeroLayout(page) {
+  await page.waitForSelector('.hero');
+  await page.evaluate(() => document.fonts.ready);
+  for (const [width, height] of [[320, 640], [390, 844], [480, 800], [600, 900], [601, 900], [768, 1024], [800, 1024], [801, 900], [844, 390], [1024, 768], [1440, 900], [1920, 1080]]) {
+    await page.cdp('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width <= 600 });
+    const layout = await page.evaluate(() => {
+      const hero = document.querySelector('.hero');
+      const bounds = hero.getBoundingClientRect();
+      const copy = hero.querySelector('.hero-copy').getBoundingClientRect();
+      const contained = rectangle => rectangle.left >= bounds.left - 1 && rectangle.right <= bounds.right + 1 && rectangle.top >= bounds.top - 1 && rectangle.bottom <= bounds.bottom + 1;
+      const decorations = [...hero.querySelectorAll('.hero-flower, .hero-label')].filter(element => getComputedStyle(element).display !== 'none').map(element => element.getBoundingClientRect());
+      return {
+        height: bounds.height,
+        contained: contained(copy) && [...hero.querySelectorAll('.hero-copy > *, .title-spark')].every(element => contained(element.getBoundingClientRect())),
+        overflow: hero.scrollWidth > hero.clientWidth,
+        decorations: decorations.length,
+        separated: decorations.every(rectangle => contained(rectangle) && (rectangle.right <= copy.left || rectangle.left >= copy.right)),
+        wallBelow: document.querySelector('.wall-section').getBoundingClientRect().top >= bounds.bottom - 1,
+        titleSize: parseFloat(getComputedStyle(hero.querySelector('h1')).fontSize),
+      };
+    });
+    assert.ok(layout.height >= 160 && layout.height <= 224, `${width}px 首屏介绍应紧凑且不裁剪内容`);
+    assert.equal(layout.contained && layout.separated && layout.wallBelow, true, `${width}px 文字、装饰和作品墙不能重叠`);
+    assert.equal(layout.overflow, false, `${width}px 首屏介绍不应横向溢出`);
+    assert.equal(layout.decorations, width <= 600 ? 0 : 2);
+    assert.ok(layout.titleSize >= 32);
+    console.log(`${width}×${height}: hero ${layout.height}px，文字与装饰无溢出或重叠`);
+  }
+}
+
+export async function checkFloatingContacts(page) {
+  await page.goto('http://127.0.0.1:4174', { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.photo-grid');
+  for (const width of [320, 390, 768, 800, 801, 1440]) {
+    await page.cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width <= 600 });
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForSelector('.floating-contacts', { state: 'hidden' });
+    await page.evaluate(() => window.scrollTo({ top: document.querySelector('.site-header').getBoundingClientRect().bottom + scrollY + 24, behavior: 'instant' }));
+    await page.waitForSelector('.floating-contacts', { state: 'visible' });
+    const dock = await page.evaluate(() => document.querySelector('.floating-contacts').getBoundingClientRect().toJSON());
+    assert.ok(dock.width <= 60 && dock.height <= (width <= 800 ? 108 : 280), `${width}px 悬浮入口应紧凑`);
+    if (width <= 800) {
+      await page.waitForSelector('#floating-contact-panel', { state: 'hidden' });
+      await page.click('.floating-contact-toggle');
+      await page.waitForSelector('#floating-contact-panel', { state: 'visible' });
+      assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.floating-contact-links')).gridTemplateColumns.split(' ').length), 2);
+    }
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('.floating-contact-links .contact-link')].every(link => {
+      const bounds = link.getBoundingClientRect();
+      return bounds.width >= 44 && bounds.height >= 44 && bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight;
+    })), true, `${width}px 联系按钮可触摸且不溢出屏幕`);
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.floating-contact-links a')].map(link => link.href)), await page.evaluate(() => [...document.querySelectorAll('.header-contacts a')].map(link => link.href)));
+    if (width <= 800) {
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#floating-contact-panel', { state: 'hidden' });
+      assert.equal(await page.evaluate(() => document.activeElement?.classList.contains('floating-contact-toggle')), true);
+      await page.click('.floating-contact-toggle');
+      await page.focus('#wall-category');
+      await page.waitForSelector('#floating-contact-panel', { state: 'hidden' });
+    }
+    await page.click('.floating-back-top');
+    await page.waitForFunction(() => scrollY === 0 && !document.querySelector('.floating-contacts'));
+    assert.equal(await page.evaluate(() => document.activeElement?.closest('.header-contacts') !== null), true);
+    await page.click('.photo-open >> nth=0');
+    await page.waitForSelector('.detail-modal');
+    assert.equal(await page.evaluate(() => !document.querySelector('.floating-contacts') || getComputedStyle(document.querySelector('.floating-contacts')).visibility === 'hidden'), true);
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.detail-modal', { state: 'hidden' });
+    console.log(`${width}px: 悬浮联系显隐、触摸尺寸、收起展开、键盘操作与返回顶部通过`);
+  }
+}
+
 export async function checkPhotoWall(page) {
   const origin = 'http://127.0.0.1:4174';
   async function request(path, body, method = body ? 'POST' : 'GET') {
@@ -15,15 +87,15 @@ export async function checkPhotoWall(page) {
       const bounds = modal.getBoundingClientRect();
       const gallery = modal.querySelector('.detail-gallery').getBoundingClientRect();
       const copy = modal.querySelector('.detail-copy').getBoundingClientRect();
-      const selectors = ['.animal-modal-title', '.detail-gallery', '.detail-copy', '.detail-actions'];
+      const selectors = innerWidth > 800 ? ['.animal-modal-title', '.detail-actions'] : ['.animal-modal-title', '.detail-gallery', '.detail-copy', '.detail-actions'];
       return {
         centered: selectors.every((selector) => { const rect = modal.querySelector(selector).getBoundingClientRect(); return Math.abs(rect.left + rect.width / 2 - bounds.left - bounds.width / 2) < 2; }),
-        stacked: copy.top >= gallery.bottom,
-        textAlign: getComputedStyle(modal.querySelector('.detail-copy')).textAlign,
+        responsive: innerWidth > 800 ? copy.left >= gallery.right && Math.abs(copy.top - gallery.top) < 1 : copy.top >= gallery.bottom,
+        textAlign: getComputedStyle(modal.querySelector('.detail-copy')).textAlign === (innerWidth > 800 ? 'left' : 'center'),
         contained: [...modal.querySelectorAll('.animal-modal-title, .animal-modal-body, .detail-layout, .detail-gallery, .detail-copy, .detail-footer, dl, dd')].every((element) => element.scrollWidth <= element.clientWidth + 1),
       };
     });
-    assert.deepEqual(layout, { centered: true, stacked: true, textAlign: 'center', contained: true }, '详情标题、图片、资料和按钮应居中，长文本不应横向溢出');
+    assert.deepEqual(layout, { centered: true, responsive: true, textAlign: true, contained: true }, '宽屏图片居左资料居右，窄屏保持居中竖排，标题和按钮居中且长文本不溢出');
   }
   async function checkWechatCopy(selector, checkDuration = false) {
     const initialUrl = await page.url();
@@ -38,6 +110,30 @@ export async function checkPhotoWall(page) {
       };
     });
     try {
+      const geometry = () => page.evaluate(selector => {
+        const parent = document.querySelector(selector).parentElement;
+        return [...parent.children].map(element => ({ width: element.offsetWidth, height: element.offsetHeight, left: element.offsetLeft - parent.offsetLeft, top: element.offsetTop - parent.offsetTop }));
+      }, selector);
+      await page.focus(selector);
+      const before = await geometry();
+      await page.evaluate(() => {
+        window.__wechatCopyCalls = 0;
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => {
+          window.__wechatCopyCalls += 1;
+          return new Promise(resolve => { window.__finishWechatCopy = resolve; });
+        } } });
+      });
+      await page.click(selector);
+      await page.waitForFunction(selector => document.querySelector(selector).getAttribute('aria-busy') === 'true', selector);
+      assert.deepEqual(await geometry(), before, '复制期间按钮与相邻元素的宽度、位置不能改变');
+      assert.equal(await page.evaluate(selector => document.querySelector(selector).getAttribute('aria-disabled'), selector), 'true');
+      await page.evaluate(selector => document.querySelector(selector).click(), selector);
+      assert.equal(await page.evaluate(() => window.__wechatCopyCalls), 1, '复制期间重复点击不能再次请求剪贴板');
+      await page.evaluate(() => { window.__finishWechatCopy(); delete window.__finishWechatCopy; });
+      await page.waitForSelector('.contact-notification', { state: 'visible' });
+      assert.deepEqual(await geometry(), before, '复制完成后按钮与相邻元素位置保持不变');
+      await page.click('.contact-notification .animal-notification-close');
+      await page.waitForSelector('.contact-notification', { state: 'hidden' });
       for (const mode of ['clipboard', 'unavailable', 'denied', 'failure', 'error']) {
         await page.evaluate((mode) => {
           window.__copiedWechat = '';
@@ -74,7 +170,7 @@ export async function checkPhotoWall(page) {
         assert.equal(await page.evaluate(() => Boolean(document.querySelector('.detail-modal'))), detailOpen, '关闭浮动消息不应关闭作品详情');
       }
     } finally {
-      await page.evaluate(() => { window.__restoreWechatClipboard(); delete window.__restoreWechatClipboard; });
+      await page.evaluate(() => { window.__finishWechatCopy?.(); delete window.__finishWechatCopy; delete window.__wechatCopyCalls; window.__restoreWechatClipboard(); delete window.__restoreWechatClipboard; });
     }
   }
   const state = await request('/__test/state');
@@ -119,6 +215,13 @@ export async function checkPhotoWall(page) {
     const layout = await page.evaluate(() => ({ columns: getComputedStyle(document.querySelector('.photo-grid')).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth > innerWidth }));
     assert.equal(layout.columns, width > 800 ? 4 : 2);
     assert.equal(layout.overflow, false, `${width}px 页面不应横向溢出`);
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('.filter-field')].every(label => {
+      const range = document.createRange();
+      range.selectNodeContents(label.firstChild);
+      const text = range.getBoundingClientRect();
+      const select = label.querySelector('select').getBoundingClientRect();
+      return text.right <= select.left && Math.abs(text.top + text.height / 2 - select.top - select.height / 2) < 2 && select.width >= 100;
+    })), true, `${width}px 分类和材质标签应在下拉框左侧且垂直居中`);
     const captions = await page.evaluate(() => [...document.querySelectorAll('.photo-memory figcaption')].map(caption => ({
       order: [...caption.children].map(element => element.className),
       name: caption.querySelector('h3').textContent,
