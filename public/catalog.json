@@ -1,8 +1,54 @@
 {
   "schemaVersion": 1,
-  "revision": "282c393e-c9a3-4a1a-a555-807b1dd3eea9",
-  "updatedAt": "2026-09-19T07:57:17.968Z",
+  "revision": "897b0e14-1ea5-4080-99cd-70d90b7b65ed",
+  "updatedAt": "2026-09-19T08:01:06.862Z",
   "products": [
+    {
+      "id": "4bea20b2-4ea3-492d-b557-29669e8b660f",
+      "name": "三叶枝叶多仓宠物纪念手链",
+      "description": "森系枝叶细银手链，三颗独立椭圆仓，可存放 2-3 只宠物毛发，自带延长链，清冷简约风多宠纪念首饰。",
+      "category": "手链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 188,
+      "createdAt": "2026-09-19T07:59:47.074Z",
+      "updatedAt": "2026-09-19T08:00:54.327Z",
+      "photos": [
+        {
+          "id": "85fc0a55-caf7-4179-a407-3a937e1a10e2",
+          "src": "images/4bea20b2-4ea3-492d-b557-29669e8b660f/85fc0a55-caf7-4179-a407-3a937e1a10e2-detail.webp",
+          "thumbnail": "images/4bea20b2-4ea3-492d-b557-29669e8b660f/85fc0a55-caf7-4179-a407-3a937e1a10e2-thumb.webp",
+          "width": 1059,
+          "height": 1600,
+          "bytes": 117662,
+          "thumbnailBytes": 18762,
+          "alt": "三叶枝叶多仓宠物纪念手链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "e3bc42a8-bfc2-46d2-b432-0bada9ca2a1d",
+      "name": "🌸小花多仓宠物纪念手链",
+      "description": "清新小花串联银手链，五颗独立椭圆仓，可存放多只宠物毛发，自带延长链，温柔风多宠家庭纪念首饰。",
+      "category": "手链",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-19T07:57:37.889Z",
+      "updatedAt": "2026-09-19T07:59:40.985Z",
+      "photos": [
+        {
+          "id": "f08b8be5-9a8f-49e7-b690-b20481d0dd67",
+          "src": "images/e3bc42a8-bfc2-46d2-b432-0bada9ca2a1d/f08b8be5-9a8f-49e7-b690-b20481d0dd67-detail.webp",
+          "thumbnail": "images/e3bc42a8-bfc2-46d2-b432-0bada9ca2a1d/f08b8be5-9a8f-49e7-b690-b20481d0dd67-thumb.webp",
+          "width": 1249,
+          "height": 1600,
+          "bytes": 73266,
+          "thumbnailBytes": 12856,
+          "alt": "🌸小花多仓宠物纪念手链 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "1fe415fc-8f0e-4bbf-b8aa-f304b090bcfc",
       "name": "椭圆复古花纹宠物纪念手链",
