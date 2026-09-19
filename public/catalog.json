@@ -1,8 +1,156 @@
 {
   "schemaVersion": 1,
-  "revision": "897b0e14-1ea5-4080-99cd-70d90b7b65ed",
-  "updatedAt": "2026-09-19T08:01:06.862Z",
+  "revision": "6df2ab86-4f1c-46e6-9c10-1d6596b499df",
+  "updatedAt": "2026-09-19T08:12:16.838Z",
   "products": [
+    {
+      "id": "05fdd860-9870-4b93-9a6f-d725ac46cbd8",
+      "name": "蝴蝶结水滴围钻宠物纪念耳钉",
+      "description": "重工满钻蝴蝶结水滴银耳钉，通透水滴仓可封存宠物毛发，S925 银耳针，优雅华丽款铲屎官纪念耳饰。",
+      "category": "耳饰",
+      "material": "S925纯银",
+      "size": "",
+      "price": 158,
+      "createdAt": "2026-09-19T08:11:01.559Z",
+      "updatedAt": "2026-09-19T08:11:59.523Z",
+      "photos": [
+        {
+          "id": "ab244375-406f-4f1a-9275-3ddbe26a4800",
+          "src": "images/05fdd860-9870-4b93-9a6f-d725ac46cbd8/ab244375-406f-4f1a-9275-3ddbe26a4800-detail.webp",
+          "thumbnail": "images/05fdd860-9870-4b93-9a6f-d725ac46cbd8/ab244375-406f-4f1a-9275-3ddbe26a4800-thumb.webp",
+          "width": 1271,
+          "height": 1600,
+          "bytes": 326648,
+          "thumbnailBytes": 45226,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "529f69b5-e389-4925-93f1-516ae9d0d170",
+      "name": "方围钻蓝调宠物纪念耳钉",
+      "description": "轻奢方形围钻银耳钉，蓝调方形仓可封存宠物毛发，S925 银耳针，大气显贵的铲屎官纪念耳饰。",
+      "category": "耳饰",
+      "material": "S925纯银",
+      "size": "",
+      "price": 138,
+      "createdAt": "2026-09-19T08:09:28.439Z",
+      "updatedAt": "2026-09-19T08:10:54.422Z",
+      "photos": [
+        {
+          "id": "d155e360-dba3-4761-8853-73b0b622127f",
+          "src": "images/529f69b5-e389-4925-93f1-516ae9d0d170/d155e360-dba3-4761-8853-73b0b622127f-detail.webp",
+          "thumbnail": "images/529f69b5-e389-4925-93f1-516ae9d0d170/d155e360-dba3-4761-8853-73b0b622127f-thumb.webp",
+          "width": 1280,
+          "height": 1280,
+          "bytes": 166586,
+          "thumbnailBytes": 44440,
+          "alt": "方围钻蓝调宠物纪念耳钉 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "9cb57469-6482-4b4a-9356-c38edde0279f",
+      "name": "四叶草围钻宠物纪念耳钉",
+      "description": "轻奢四叶草围钻银耳钉，中心圆仓可封存宠物毛发，S925 银耳针，寓意幸运的铲屎官纪念耳饰。",
+      "category": "耳饰",
+      "material": "S925纯银",
+      "size": "",
+      "price": 128,
+      "createdAt": "2026-09-19T08:06:15.353Z",
+      "updatedAt": "2026-09-19T08:09:18.378Z",
+      "photos": [
+        {
+          "id": "b804a3d3-1a74-4966-8c10-30f02473952c",
+          "src": "images/9cb57469-6482-4b4a-9356-c38edde0279f/b804a3d3-1a74-4966-8c10-30f02473952c-detail.webp",
+          "thumbnail": "images/9cb57469-6482-4b4a-9356-c38edde0279f/b804a3d3-1a74-4966-8c10-30f02473952c-thumb.webp",
+          "width": 1280,
+          "height": 1280,
+          "bytes": 92648,
+          "thumbnailBytes": 16754,
+          "alt": "四叶草围钻宠物纪念耳钉 · 照片 1"
+        },
+        {
+          "id": "826bd296-0e55-4390-a6c5-6756a5497f2c",
+          "src": "images/9cb57469-6482-4b4a-9356-c38edde0279f/826bd296-0e55-4390-a6c5-6756a5497f2c-detail.webp",
+          "thumbnail": "images/9cb57469-6482-4b4a-9356-c38edde0279f/826bd296-0e55-4390-a6c5-6756a5497f2c-thumb.webp",
+          "width": 1280,
+          "height": 1280,
+          "bytes": 113776,
+          "thumbnailBytes": 21930,
+          "alt": "四叶草围钻宠物纪念耳钉 · 照片 2"
+        }
+      ]
+    },
+    {
+      "id": "43d4d6e9-242c-4a7d-92fb-d11de9c0b0b0",
+      "name": "日月不对称宠物纪念耳钉",
+      "description": "日月不对称银耳钉，月亮太阳双独立仓，可封存宠物毛发，S925 银耳针，寓意陪伴的小众铲屎官纪念耳饰。",
+      "category": "耳饰",
+      "material": "S925纯银",
+      "size": "",
+      "price": 128,
+      "createdAt": "2026-09-19T08:05:22.658Z",
+      "updatedAt": "2026-09-19T08:06:09.229Z",
+      "photos": [
+        {
+          "id": "332485fa-4149-47df-af19-1b86e4a5d707",
+          "src": "images/43d4d6e9-242c-4a7d-92fb-d11de9c0b0b0/332485fa-4149-47df-af19-1b86e4a5d707-detail.webp",
+          "thumbnail": "images/43d4d6e9-242c-4a7d-92fb-d11de9c0b0b0/332485fa-4149-47df-af19-1b86e4a5d707-thumb.webp",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 167266,
+          "thumbnailBytes": 33264,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "5f872386-7f4c-4ee2-aabb-b0f2a1ba212d",
+      "name": "星芒垂坠蓝珠宠物纪念耳钉",
+      "description": "复古八芒星垂坠银耳钉，渐变蓝色圆仓可封存宠物毛发，S925 银耳针，清冷星光感铲屎官纪念耳饰。",
+      "category": "耳饰",
+      "material": "S925纯银",
+      "size": "",
+      "price": 128,
+      "createdAt": "2026-09-19T08:02:54.900Z",
+      "updatedAt": "2026-09-19T08:05:07.645Z",
+      "photos": [
+        {
+          "id": "f9881706-b722-47de-8a55-789d793906aa",
+          "src": "images/5f872386-7f4c-4ee2-aabb-b0f2a1ba212d/f9881706-b722-47de-8a55-789d793906aa-detail.webp",
+          "thumbnail": "images/5f872386-7f4c-4ee2-aabb-b0f2a1ba212d/f9881706-b722-47de-8a55-789d793906aa-thumb.webp",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 303702,
+          "thumbnailBytes": 51618,
+          "alt": "星芒垂坠蓝珠宠物纪念耳钉 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "10b91250-367c-482e-9730-d3c65da2036c",
+      "name": "椭圆围钻宠物纪念耳钉",
+      "description": "轻奢围钻椭圆银耳钉，中心仓可封存宠物毛发，S925 银耳针，把毛孩子的陪伴藏在耳畔。",
+      "category": "耳饰",
+      "material": "S925纯银",
+      "size": "",
+      "price": 188,
+      "createdAt": "2026-09-19T08:01:54.672Z",
+      "updatedAt": "2026-09-19T08:02:45.792Z",
+      "photos": [
+        {
+          "id": "5ad47fa8-b7d2-459b-8738-61f52f3da80c",
+          "src": "images/10b91250-367c-482e-9730-d3c65da2036c/5ad47fa8-b7d2-459b-8738-61f52f3da80c-detail.webp",
+          "thumbnail": "images/10b91250-367c-482e-9730-d3c65da2036c/5ad47fa8-b7d2-459b-8738-61f52f3da80c-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 176074,
+          "thumbnailBytes": 24574,
+          "alt": "椭圆围钻宠物纪念耳钉 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "4bea20b2-4ea3-492d-b557-29669e8b660f",
       "name": "三叶枝叶多仓宠物纪念手链",
