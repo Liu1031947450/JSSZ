@@ -1,8 +1,54 @@
 {
   "schemaVersion": 1,
-  "revision": "99782313-0cbe-4f66-83c9-6b4a9bc2f55d",
-  "updatedAt": "2026-09-19T08:51:00.571Z",
+  "revision": "31140288-0588-41a3-8527-688bcb93dea2",
+  "updatedAt": "2026-09-19T08:56:29.950Z",
   "products": [
+    {
+      "id": "b19a2204-5a32-46b2-ac11-3388aedd7268",
+      "name": "星月双层宠物纪念项链",
+      "description": "双层叠戴设计，上层八角星，下层满钻弯月带圆形仓体，仓内可封存宠物毛发，氛围感星月款",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 218,
+      "createdAt": "2026-09-19T08:55:03.204Z",
+      "updatedAt": "2026-09-19T08:56:21.929Z",
+      "photos": [
+        {
+          "id": "abd5623d-0793-4522-bcd6-e2948c2da315",
+          "src": "images/b19a2204-5a32-46b2-ac11-3388aedd7268/abd5623d-0793-4522-bcd6-e2948c2da315-detail.webp",
+          "thumbnail": "images/b19a2204-5a32-46b2-ac11-3388aedd7268/abd5623d-0793-4522-bcd6-e2948c2da315-thumb.webp",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 132896,
+          "thumbnailBytes": 16462,
+          "alt": "星月双层宠物纪念项链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "b551159e-2b99-4d60-8cf0-bdd8f7aadaf9",
+      "name": "小猫头方爪印宠物纪念项链",
+      "description": "方形镶钻主仓吊坠，侧边搭配迷你爪印小挂坠，主仓可封存宠物毛发，可爱精致双吊坠设计",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 188,
+      "createdAt": "2026-09-19T08:51:36.904Z",
+      "updatedAt": "2026-09-19T08:54:25.524Z",
+      "photos": [
+        {
+          "id": "46b6d4ca-8f49-452b-a4f4-c2dfe98cfd5d",
+          "src": "images/b551159e-2b99-4d60-8cf0-bdd8f7aadaf9/46b6d4ca-8f49-452b-a4f4-c2dfe98cfd5d-detail.webp",
+          "thumbnail": "images/b551159e-2b99-4d60-8cf0-bdd8f7aadaf9/46b6d4ca-8f49-452b-a4f4-c2dfe98cfd5d-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 403334,
+          "thumbnailBytes": 47802,
+          "alt": "小猫头方爪印宠物纪念项链 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "f4785bd3-97b8-418b-b5be-bc0866042c22",
       "name": "太阳花光芒宠物纪念项链",
