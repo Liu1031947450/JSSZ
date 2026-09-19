@@ -1,8 +1,146 @@
 {
   "schemaVersion": 1,
-  "revision": "c02525e6-a3f0-4205-a2e0-b287431c6895",
-  "updatedAt": "2026-09-19T08:36:51.127Z",
+  "revision": "99782313-0cbe-4f66-83c9-6b4a9bc2f55d",
+  "updatedAt": "2026-09-19T08:51:00.571Z",
   "products": [
+    {
+      "id": "f4785bd3-97b8-418b-b5be-bc0866042c22",
+      "name": "太阳花光芒宠物纪念项链",
+      "description": "太阳花瓣围钻银项链，中心圆仓可封存宠物毛发，寓意日光守护，治愈系铲屎官纪念吊坠。",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 138,
+      "createdAt": "2026-09-19T08:45:56.356Z",
+      "updatedAt": "2026-09-19T08:47:44.197Z",
+      "photos": [
+        {
+          "id": "3a6c9b17-6722-4056-b148-bfcca3ac1de0",
+          "src": "images/f4785bd3-97b8-418b-b5be-bc0866042c22/3a6c9b17-6722-4056-b148-bfcca3ac1de0-detail.webp",
+          "thumbnail": "images/f4785bd3-97b8-418b-b5be-bc0866042c22/3a6c9b17-6722-4056-b148-bfcca3ac1de0-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 57044,
+          "thumbnailBytes": 10828,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "43f49047-783d-4d04-97f4-daca6d723d60",
+      "name": "满钻葫芦宠物纪念项链",
+      "description": "满钻葫芦双仓银项链，双仓可封存宠物毛发，寓意福禄相伴，可收纳单只或两只毛孩子的纪念吊坠。",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 218,
+      "createdAt": "2026-09-19T08:44:44.599Z",
+      "updatedAt": "2026-09-19T08:45:49.220Z",
+      "photos": [
+        {
+          "id": "5f5082d0-e6c4-4f6f-8d75-360cf63fb6b9",
+          "src": "images/43f49047-783d-4d04-97f4-daca6d723d60/5f5082d0-e6c4-4f6f-8d75-360cf63fb6b9-detail.webp",
+          "thumbnail": "images/43f49047-783d-4d04-97f4-daca6d723d60/5f5082d0-e6c4-4f6f-8d75-360cf63fb6b9-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 79794,
+          "thumbnailBytes": 15366,
+          "alt": "满钻葫芦宠物纪念项链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "450f87bc-0325-4288-84b3-4e9c1fc1ce65",
+      "name": "蝴蝶缠绕宠物纪念项链",
+      "description": "镶钻蝴蝶造型银项链，中心圆仓可封存宠物毛发，仙气灵动，铲屎官纪念吊坠。",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 168,
+      "createdAt": "2026-09-19T08:43:07.740Z",
+      "updatedAt": "2026-09-19T08:44:36.490Z",
+      "photos": [
+        {
+          "id": "01b10bc9-0af6-4bd2-b06b-921a6be8f189",
+          "src": "images/450f87bc-0325-4288-84b3-4e9c1fc1ce65/01b10bc9-0af6-4bd2-b06b-921a6be8f189-detail.webp",
+          "thumbnail": "images/450f87bc-0325-4288-84b3-4e9c1fc1ce65/01b10bc9-0af6-4bd2-b06b-921a6be8f189-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 154592,
+          "thumbnailBytes": 23696,
+          "alt": "蝴蝶缠绕宠物纪念项链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "134c123d-223b-4e7a-abd0-df690f3f571d",
+      "name": "弯月抱石宠物纪念项链",
+      "description": "满钻弯月环抱方形仓银项链，仓体可封存宠物毛发，温柔星月风，铲屎官纪念吊坠。",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 218,
+      "createdAt": "2026-09-19T08:40:34.138Z",
+      "updatedAt": "2026-09-19T08:43:00.336Z",
+      "photos": [
+        {
+          "id": "c5b74643-07f2-4fb4-9684-e79071eaf74d",
+          "src": "images/134c123d-223b-4e7a-abd0-df690f3f571d/c5b74643-07f2-4fb4-9684-e79071eaf74d-detail.webp",
+          "thumbnail": "images/134c123d-223b-4e7a-abd0-df690f3f571d/c5b74643-07f2-4fb4-9684-e79071eaf74d-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 65778,
+          "thumbnailBytes": 10376,
+          "alt": "弯月抱石宠物纪念项链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "81d7e203-60b6-45a0-85ba-f72f726310e5",
+      "name": "极简四爪圆石宠物纪念项链",
+      "description": "极简四爪爪镶银项链，圆形仓体可封存宠物毛发，素净简约，日常百搭的铲屎官纪念吊坠。",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 138,
+      "createdAt": "2026-09-19T08:39:33.827Z",
+      "updatedAt": "2026-09-19T08:40:28.363Z",
+      "photos": [
+        {
+          "id": "2077759b-f316-429d-81d0-1d502e4b14e4",
+          "src": "images/81d7e203-60b6-45a0-85ba-f72f726310e5/2077759b-f316-429d-81d0-1d502e4b14e4-detail.webp",
+          "thumbnail": "images/81d7e203-60b6-45a0-85ba-f72f726310e5/2077759b-f316-429d-81d0-1d502e4b14e4-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 127490,
+          "thumbnailBytes": 18604,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "ebd7f441-136a-41bb-9de9-38e46d76f716",
+      "name": "满钻小猫头宠物纪念项链",
+      "description": "满钻猫耳造型银项链，中心圆仓可封存宠物毛发，软萌可爱，铲屎官专属纪念吊坠。",
+      "category": "项链",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-19T08:37:36.606Z",
+      "updatedAt": "2026-09-19T08:39:20.365Z",
+      "photos": [
+        {
+          "id": "fb31826a-36ad-4604-bad5-38043678210f",
+          "src": "images/ebd7f441-136a-41bb-9de9-38e46d76f716/fb31826a-36ad-4604-bad5-38043678210f-detail.webp",
+          "thumbnail": "images/ebd7f441-136a-41bb-9de9-38e46d76f716/fb31826a-36ad-4604-bad5-38043678210f-thumb.webp",
+          "width": 1305,
+          "height": 1600,
+          "bytes": 143110,
+          "thumbnailBytes": 22546,
+          "alt": "满钻小猫头宠物纪念项链 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "19f34089-c4a6-4034-9ec0-2a0916988412",
       "name": "碎冰满钻花簇宠物纪念项链",
