@@ -1,8 +1,87 @@
 {
   "schemaVersion": 1,
-  "revision": "7c2b7971-f020-4056-9ba5-15b6c15fdbc7",
-  "updatedAt": "2026-09-19T02:58:18.250Z",
+  "revision": "71ac2eb0-f13a-4a6b-ac21-7ea16209258a",
+  "updatedAt": "2026-09-19T03:06:56.661Z",
   "products": [
+    {
+      "id": "d9eab415-f7c9-4fef-980b-cc7ab1a469fd",
+      "name": "欧式复古雕花细银手链",
+      "description": "欧式复古雕花细银手链，椭圆仓可封存宠物毛发，自带延长链可调手围，温柔宫廷风铲屎官随身纪念首饰。",
+      "category": "手链",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-19T03:04:52.390Z",
+      "updatedAt": "2026-09-19T03:06:14.876Z",
+      "photos": [
+        {
+          "id": "de5f138d-29eb-4492-b185-70b1a5c2f90b",
+          "src": "images/d9eab415-f7c9-4fef-980b-cc7ab1a469fd/de5f138d-29eb-4492-b185-70b1a5c2f90b-detail.webp",
+          "thumbnail": "images/d9eab415-f7c9-4fef-980b-cc7ab1a469fd/de5f138d-29eb-4492-b185-70b1a5c2f90b-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 58506,
+          "thumbnailBytes": 9304,
+          "alt": "欧式复古雕花细银手链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "9b1e568d-65fe-4224-a596-42d8fdc2a3d8",
+      "name": "宫廷风十字架拉丝手链",
+      "description": "复古十字细银链，椭圆镶钻仓可封存宠物毛发，可调节尾链，清冷小众风，铲屎官随身纪念饰品。",
+      "category": "手链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 238,
+      "createdAt": "2026-09-19T03:03:29.082Z",
+      "updatedAt": "2026-09-19T03:04:36.092Z",
+      "photos": [
+        {
+          "id": "619bd34a-35be-4699-8862-3710f592549b",
+          "src": "images/9b1e568d-65fe-4224-a596-42d8fdc2a3d8/619bd34a-35be-4699-8862-3710f592549b-detail.webp",
+          "thumbnail": "images/9b1e568d-65fe-4224-a596-42d8fdc2a3d8/619bd34a-35be-4699-8862-3710f592549b-thumb.webp",
+          "width": 900,
+          "height": 1600,
+          "bytes": 104230,
+          "thumbnailBytes": 16440,
+          "alt": "宫廷风十字架拉丝手链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "d38eb4b2-4528-4832-b0e4-0704e7e2955a",
+      "name": "星芒珍珠宠物纪念手链",
+      "description": "星芒镶钻珍珠弹力手链，椭圆仓可封存宠物毛发，温柔氛围感，铲屎官专属随身纪念饰品。",
+      "category": "手链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 168,
+      "createdAt": "2026-09-19T03:01:02.263Z",
+      "updatedAt": "2026-09-19T03:02:36.799Z",
+      "photos": [
+        {
+          "id": "90bcecfd-4945-41cc-a2be-453da593015b",
+          "src": "images/d38eb4b2-4528-4832-b0e4-0704e7e2955a/90bcecfd-4945-41cc-a2be-453da593015b-detail.webp",
+          "thumbnail": "images/d38eb4b2-4528-4832-b0e4-0704e7e2955a/90bcecfd-4945-41cc-a2be-453da593015b-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 96504,
+          "thumbnailBytes": 20238,
+          "alt": "星芒珍珠宠物纪念手链 · 照片 2"
+        },
+        {
+          "id": "d8ba10e7-7160-4741-b329-9e398cd4cd6e",
+          "src": "images/d38eb4b2-4528-4832-b0e4-0704e7e2955a/d8ba10e7-7160-4741-b329-9e398cd4cd6e-detail.webp",
+          "thumbnail": "images/d38eb4b2-4528-4832-b0e4-0704e7e2955a/d8ba10e7-7160-4741-b329-9e398cd4cd6e-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 119182,
+          "thumbnailBytes": 23772,
+          "alt": "星芒珍珠宠物纪念手链 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "cd06682e-c653-4904-bf7c-ec9bcb5caff1",
       "name": "猫耳碎钻纪念戒指 · 客样：布偶猫「布丁」",
