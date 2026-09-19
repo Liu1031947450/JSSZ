@@ -1,8 +1,52 @@
 {
   "schemaVersion": 1,
-  "revision": "51df3836-8436-4f8e-ab9f-e787c7321021",
-  "updatedAt": "2026-09-19T09:07:14.675Z",
+  "revision": "8a6ad2b4-0502-4488-bbb7-b62ed68e08b5",
+  "updatedAt": "2026-09-19T09:10:49.062Z",
   "products": [
+    {
+      "id": "c87f1213-8187-4861-8641-3d0a001ea773",
+      "name": "毛发收集教程方法",
+      "description": "",
+      "category": "",
+      "material": "",
+      "size": "",
+      "createdAt": "2026-09-19T09:09:58.088Z",
+      "updatedAt": "2026-09-19T09:10:39.154Z",
+      "photos": [
+        {
+          "id": "71bfc3f5-74bc-4f41-acf8-556683eef1fe",
+          "src": "images/c87f1213-8187-4861-8641-3d0a001ea773/71bfc3f5-74bc-4f41-acf8-556683eef1fe-detail.webp",
+          "thumbnail": "images/c87f1213-8187-4861-8641-3d0a001ea773/71bfc3f5-74bc-4f41-acf8-556683eef1fe-thumb.webp",
+          "width": 1024,
+          "height": 1536,
+          "bytes": 166050,
+          "thumbnailBytes": 30906,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "175d507c-ca6c-406c-9865-10a025926ecc",
+      "name": "购买须知！！！！",
+      "description": "",
+      "category": "",
+      "material": "",
+      "size": "",
+      "createdAt": "2026-09-19T09:09:31.800Z",
+      "updatedAt": "2026-09-19T09:09:50.541Z",
+      "photos": [
+        {
+          "id": "563511dd-08ba-4212-9ed0-6a5867926dd5",
+          "src": "images/175d507c-ca6c-406c-9865-10a025926ecc/563511dd-08ba-4212-9ed0-6a5867926dd5-detail.webp",
+          "thumbnail": "images/175d507c-ca6c-406c-9865-10a025926ecc/563511dd-08ba-4212-9ed0-6a5867926dd5-thumb.webp",
+          "width": 1024,
+          "height": 1536,
+          "bytes": 182638,
+          "thumbnailBytes": 33546,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "4e218db8-1732-4607-939e-00d0a8777ff7",
       "name": "祥云多宝挂饰",
