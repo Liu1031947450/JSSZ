@@ -1,8 +1,77 @@
 {
   "schemaVersion": 1,
-  "revision": "31140288-0588-41a3-8527-688bcb93dea2",
-  "updatedAt": "2026-09-19T08:56:29.950Z",
+  "revision": "51df3836-8436-4f8e-ab9f-e787c7321021",
+  "updatedAt": "2026-09-19T09:07:14.675Z",
   "products": [
+    {
+      "id": "4e218db8-1732-4607-939e-00d0a8777ff7",
+      "name": "祥云多宝挂饰",
+      "description": "新中式祥云造型，珠宝级高透固化晶体封存宠物羽毛 / 毛发，搭配多宝彩珠编织挂绳，可做包挂、手机挂、车挂，也可以做手链、项链。",
+      "category": "定制",
+      "material": "珠宝级高透固化晶体",
+      "size": "",
+      "price": 68,
+      "createdAt": "2026-09-19T09:03:50.974Z",
+      "updatedAt": "2026-09-19T09:05:46.643Z",
+      "photos": [
+        {
+          "id": "89ec0a8c-06d5-43da-9211-61398c4dd890",
+          "src": "images/4e218db8-1732-4607-939e-00d0a8777ff7/89ec0a8c-06d5-43da-9211-61398c4dd890-detail.webp",
+          "thumbnail": "images/4e218db8-1732-4607-939e-00d0a8777ff7/89ec0a8c-06d5-43da-9211-61398c4dd890-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 75150,
+          "thumbnailBytes": 12608,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "ffe6579e-aa34-4760-af77-5a764819538c",
+      "name": "平安扣",
+      "description": "国风平安扣圆环造型，珠宝级高透固化晶体封存宠物羽毛 / 毛发，搭配橄榄核竹节绳，新中式禅意纪念项链，也可做手链、挂件等",
+      "category": "定制",
+      "material": "珠宝级高透固化晶体",
+      "size": "",
+      "price": 68,
+      "createdAt": "2026-09-19T08:58:42.710Z",
+      "updatedAt": "2026-09-19T09:06:56.496Z",
+      "photos": [
+        {
+          "id": "3d337e7e-350a-4a00-b211-80909e2815a0",
+          "src": "images/ffe6579e-aa34-4760-af77-5a764819538c/3d337e7e-350a-4a00-b211-80909e2815a0-detail.webp",
+          "thumbnail": "images/ffe6579e-aa34-4760-af77-5a764819538c/3d337e7e-350a-4a00-b211-80909e2815a0-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 58672,
+          "thumbnailBytes": 10830,
+          "alt": "手作作品 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "5f9942fd-fa53-4b5d-a93f-24448224ab7c",
+      "name": "花叶垂坠琥珀仓宠物纪念项链",
+      "description": "V 型花叶镶钻设计，下方垂挂琥珀色水滴主仓，可封存宠物毛发，温柔复古气质款",
+      "category": "项链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 218,
+      "createdAt": "2026-09-19T08:57:19.477Z",
+      "updatedAt": "2026-09-19T08:58:24.465Z",
+      "photos": [
+        {
+          "id": "50ecfd2b-fb37-4971-b2ca-2fc9faa4e179",
+          "src": "images/5f9942fd-fa53-4b5d-a93f-24448224ab7c/50ecfd2b-fb37-4971-b2ca-2fc9faa4e179-detail.webp",
+          "thumbnail": "images/5f9942fd-fa53-4b5d-a93f-24448224ab7c/50ecfd2b-fb37-4971-b2ca-2fc9faa4e179-thumb.webp",
+          "width": 1315,
+          "height": 1600,
+          "bytes": 189442,
+          "thumbnailBytes": 29628,
+          "alt": "花叶垂坠琥珀仓宠物纪念项链 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "b19a2204-5a32-46b2-ac11-3388aedd7268",
       "name": "星月双层宠物纪念项链",
