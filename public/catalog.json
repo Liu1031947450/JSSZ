@@ -1,8 +1,77 @@
 {
   "schemaVersion": 1,
-  "revision": "d84d812b-1de3-4d86-871f-834162677c29",
-  "updatedAt": "2026-09-19T02:48:33.280Z",
+  "revision": "7c2b7971-f020-4056-9ba5-15b6c15fdbc7",
+  "updatedAt": "2026-09-19T02:58:18.250Z",
   "products": [
+    {
+      "id": "cd06682e-c653-4904-bf7c-ec9bcb5caff1",
+      "name": "猫耳碎钻纪念戒指 · 客样：布偶猫「布丁」",
+      "description": "专为养猫人士设计的猫形戒托，还原软萌猫咪轮廓，一圈细碎银钻环绕主珠，灵动可爱。\n戒芯封存布偶猫布丁柔软蓬松的浅白毛丝，通透滴胶完整锁住原生毛发纹理，根根绒毛清晰可见。\nS925纯银材质亲肤不过敏，小巧精致的造型日常百搭。抬手即是心上小猫相伴，把布偶布丁的温柔永久珍藏，独属于铲屎官的暖心纪念首饰。",
+      "category": "戒指",
+      "material": "S925纯银",
+      "size": "",
+      "price": 158,
+      "createdAt": "2026-09-19T02:56:26.197Z",
+      "updatedAt": "2026-09-19T02:58:07.489Z",
+      "photos": [
+        {
+          "id": "e5120bf0-2380-4adf-8eb5-307a6fb0b887",
+          "src": "images/cd06682e-c653-4904-bf7c-ec9bcb5caff1/e5120bf0-2380-4adf-8eb5-307a6fb0b887-detail.webp",
+          "thumbnail": "images/cd06682e-c653-4904-bf7c-ec9bcb5caff1/e5120bf0-2380-4adf-8eb5-307a6fb0b887-thumb.webp",
+          "width": 1271,
+          "height": 1600,
+          "bytes": 136608,
+          "thumbnailBytes": 22386,
+          "alt": "猫耳碎钻纪念戒指 · 客样：布偶猫「布丁」 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "e7c0bbcb-9260-4ddb-8a59-20f5fc25f9e8",
+      "name": "圆钻藏毛纪念戒指 · 客样：黑泰迪「黑豆」",
+      "description": "将黑色泰迪黑豆柔软细腻的绒毛封存于通透滴胶之内，搭配镶钻圆戒托，细碎钻光环绕包裹专属毛发纹理，每一屡绒毛都是独一份的陪伴印记。\n低奢简约的圆环设计适配日常佩戴，通透胶体完整锁住毛发原貌，长久不发黄、不起雾。抬手间便能与毛孩子温柔相伴，留存无可复刻的温暖回忆，是献给铲屎官独有的治愈纪念首饰。",
+      "category": "戒指",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-19T02:53:03.014Z",
+      "updatedAt": "2026-09-19T02:55:59.832Z",
+      "photos": [
+        {
+          "id": "98036a86-2a45-4daa-835c-29f45c212191",
+          "src": "images/e7c0bbcb-9260-4ddb-8a59-20f5fc25f9e8/98036a86-2a45-4daa-835c-29f45c212191-detail.webp",
+          "thumbnail": "images/e7c0bbcb-9260-4ddb-8a59-20f5fc25f9e8/98036a86-2a45-4daa-835c-29f45c212191-thumb.webp",
+          "width": 1200,
+          "height": 1600,
+          "bytes": 228622,
+          "thumbnailBytes": 45010,
+          "alt": "圆钻藏毛纪念戒指 · 客样：黑泰迪「黑豆」 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "6ceaa5a7-6515-4d7f-843c-624d97a538c9",
+      "name": "猫耳朵款银戒指",
+      "description": "软萌猫耳尾巴银戒，可封存宠物毛发，开口可调，把毛孩子的回忆随身佩戴，铲屎官专属纪念礼物。",
+      "category": "戒指",
+      "material": "S925纯银",
+      "size": "",
+      "price": 158,
+      "createdAt": "2026-09-19T02:49:33.366Z",
+      "updatedAt": "2026-09-19T02:52:32.971Z",
+      "photos": [
+        {
+          "id": "74324137-203e-4ac0-bea8-0308fcae52d1",
+          "src": "images/6ceaa5a7-6515-4d7f-843c-624d97a538c9/74324137-203e-4ac0-bea8-0308fcae52d1-detail.webp",
+          "thumbnail": "images/6ceaa5a7-6515-4d7f-843c-624d97a538c9/74324137-203e-4ac0-bea8-0308fcae52d1-thumb.webp",
+          "width": 1185,
+          "height": 1185,
+          "bytes": 223172,
+          "thumbnailBytes": 45006,
+          "alt": "猫耳朵款银戒指 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "df19de3b-1d71-4899-8241-b60cade1a52b",
       "name": "藤蔓雕花纪念戒指 · 客样：布偶猫「早起」",
