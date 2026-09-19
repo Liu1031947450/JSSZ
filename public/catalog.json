@@ -1,8 +1,77 @@
 {
   "schemaVersion": 1,
-  "revision": "71ac2eb0-f13a-4a6b-ac21-7ea16209258a",
-  "updatedAt": "2026-09-19T03:06:56.661Z",
+  "revision": "282c393e-c9a3-4a1a-a555-807b1dd3eea9",
+  "updatedAt": "2026-09-19T07:57:17.968Z",
   "products": [
+    {
+      "id": "1fe415fc-8f0e-4bbf-b8aa-f304b090bcfc",
+      "name": "椭圆复古花纹宠物纪念手链",
+      "description": "复古菱形雕花银手链，多颗独立椭圆仓，可存放多只宠物毛发，自带延长链.",
+      "category": "手链",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-19T03:13:14.459Z",
+      "updatedAt": "2026-09-19T03:19:13.278Z",
+      "photos": [
+        {
+          "id": "ba08197d-1860-494e-bb49-d2df7c8e8ef5",
+          "src": "images/1fe415fc-8f0e-4bbf-b8aa-f304b090bcfc/ba08197d-1860-494e-bb49-d2df7c8e8ef5-detail.webp",
+          "thumbnail": "images/1fe415fc-8f0e-4bbf-b8aa-f304b090bcfc/ba08197d-1860-494e-bb49-d2df7c8e8ef5-thumb.webp",
+          "width": 1249,
+          "height": 1600,
+          "bytes": 73266,
+          "thumbnailBytes": 12856,
+          "alt": "椭圆复古花纹宠物纪念手链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "a2f10c4c-8852-4dd1-baba-c702bdd3b0c0",
+      "name": "✨繁花镶钻宠物纪念手链",
+      "description": "繁花满钻轻奢银手链，中心椭圆仓可封存宠物毛发，自带延长链可调手围，华丽闪耀的铲屎官专属纪念首饰。",
+      "category": "手链",
+      "material": "镀银",
+      "size": "",
+      "price": 88,
+      "createdAt": "2026-09-19T03:09:55.238Z",
+      "updatedAt": "2026-09-19T03:13:06.096Z",
+      "photos": [
+        {
+          "id": "c2cde607-6e82-4970-8ade-232cef8fca50",
+          "src": "images/a2f10c4c-8852-4dd1-baba-c702bdd3b0c0/c2cde607-6e82-4970-8ade-232cef8fca50-detail.webp",
+          "thumbnail": "images/a2f10c4c-8852-4dd1-baba-c702bdd3b0c0/c2cde607-6e82-4970-8ade-232cef8fca50-thumb.webp",
+          "width": 1375,
+          "height": 1600,
+          "bytes": 49468,
+          "thumbnailBytes": 8616,
+          "alt": "✨繁花镶钻宠物纪念手链 · 照片 1"
+        }
+      ]
+    },
+    {
+      "id": "d88462a5-d535-4b02-b41e-781ea44b2a26",
+      "name": "🐱猫咪头宠物纪念手链",
+      "description": "猫脸造型银手链，多独立椭圆仓，可同时封存多只宠物毛发，自带延长链",
+      "category": "手链",
+      "material": "S925纯银",
+      "size": "",
+      "price": 188,
+      "createdAt": "2026-09-19T03:07:59.631Z",
+      "updatedAt": "2026-09-19T03:09:50.556Z",
+      "photos": [
+        {
+          "id": "65aa5f45-598f-4dbe-af8b-b099b8bc6c43",
+          "src": "images/d88462a5-d535-4b02-b41e-781ea44b2a26/65aa5f45-598f-4dbe-af8b-b099b8bc6c43-detail.webp",
+          "thumbnail": "images/d88462a5-d535-4b02-b41e-781ea44b2a26/65aa5f45-598f-4dbe-af8b-b099b8bc6c43-thumb.webp",
+          "width": 1600,
+          "height": 1600,
+          "bytes": 110902,
+          "thumbnailBytes": 17090,
+          "alt": "🐱猫咪头宠物纪念手链 · 照片 1"
+        }
+      ]
+    },
     {
       "id": "d9eab415-f7c9-4fef-980b-cc7ab1a469fd",
       "name": "欧式复古雕花细银手链",
