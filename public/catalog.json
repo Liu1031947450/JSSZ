@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "revision": "77728789-c68f-4d67-8416-a550dfbeb263",
-  "updatedAt": "2026-09-20T02:38:59.856Z",
+  "revision": "4f081ead-3c50-42d4-8279-12b0e713a83a",
+  "updatedAt": "2026-09-20T13:32:35.932Z",
   "products": [
     {
       "id": "c87f1213-8187-4861-8641-3d0a001ea773",
@@ -56,9 +56,9 @@
       "category": "定制",
       "material": "珠宝级高透固化晶体",
       "size": "",
-      "price": 68,
+      "price": 98,
       "createdAt": "2026-09-19T09:03:50.974Z",
-      "updatedAt": "2026-09-19T09:05:46.643Z",
+      "updatedAt": "2026-09-20T13:32:24.604Z",
       "photos": [
         {
           "id": "89ec0a8c-06d5-43da-9211-61398c4dd890",
@@ -79,9 +79,9 @@
       "category": "定制",
       "material": "珠宝级高透固化晶体",
       "size": "",
-      "price": 68,
+      "price": 98,
       "createdAt": "2026-09-19T08:58:42.710Z",
-      "updatedAt": "2026-09-19T09:06:56.496Z",
+      "updatedAt": "2026-09-20T13:32:33.057Z",
       "photos": [
         {
           "id": "3d337e7e-350a-4a00-b211-80909e2815a0",
