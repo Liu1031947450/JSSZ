@@ -258,7 +258,7 @@ export async function checkPhotoWall(page) {
   await page.reload();
   await page.waitForSelector('.photo-grid');
   console.log(await page.snapshot({ scope: 'full_page' }));
-  for (const width of [320, 390, 768, 1024, 1440]) {
+  for (const width of [320, 390, 600, 601, 768, 1024, 1440]) {
     await page.cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
     await page.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: width === 390 ? 'reduce' : 'no-preference' }] });
     const layout = await page.evaluate(() => ({ columns: getComputedStyle(document.querySelector('.photo-grid')).gridTemplateColumns.split(' ').length, overflow: document.documentElement.scrollWidth > innerWidth }));
@@ -270,7 +270,7 @@ export async function checkPhotoWall(page) {
       const text = range.getBoundingClientRect();
       const select = label.querySelector('select').getBoundingClientRect();
       return text.right <= select.left && Math.abs(text.top + text.height / 2 - select.top - select.height / 2) < 2 && select.width >= 100;
-    })), true, `${width}px 分类和材质标签应在下拉框左侧且垂直居中`);
+    })), true, `${width}px 分类、材质和排序标签应在下拉框左侧且垂直居中`);
     const captions = await page.evaluate(() => [...document.querySelectorAll('.photo-memory figcaption')].map(caption => ({
       order: [...caption.children].map(element => element.className),
       name: caption.querySelector('h3').textContent,
@@ -296,6 +296,31 @@ export async function checkPhotoWall(page) {
       assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.photo-caption-heading h3')].map((heading) => heading.textContent)), names);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     }
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.wall-filters select')].map(select => select.id)), ['wall-category', 'wall-material', 'wall-sort']);
+    assert.deepEqual(await page.evaluate(() => [...document.querySelector('#wall-sort').options].filter(option => !option.hidden).map(option => option.textContent)), ['价格从低到高', '价格从高到低']);
+    await page.selectOption('#wall-sort', 'asc');
+    await checkVisible(['布局验收 2', '布局验收 4', '布局验收 1', '布局验收 3']);
+    assert.equal(await page.evaluate(() => document.querySelector('.filter-all').getAttribute('aria-pressed')), 'false');
+    assert.equal(await page.evaluate(() => document.querySelector('.filter-summary').textContent.includes('价格从低到高')), true);
+    await page.selectOption('#wall-category', '项链');
+    await checkVisible(['布局验收 4', '布局验收 1']);
+    await page.selectOption('#wall-material', '925银');
+    await checkVisible(['布局验收 1']);
+    await page.selectOption('#wall-category', '手链');
+    await page.waitForSelector('.filtered-empty');
+    assert.equal(await page.evaluate(() => document.querySelector('#wall-sort').disabled), false);
+    await page.click('.filtered-empty button');
+    assert.equal(await page.evaluate(() => document.querySelector('#wall-sort').value), '');
+    await page.selectOption('#wall-sort', 'desc');
+    await checkVisible(['布局验收 1', '布局验收 4', '布局验收 2', '布局验收 3']);
+    await page.click('.photo-open >> nth=0');
+    await page.waitForSelector('.detail-modal');
+    await page.click('.detail-footer button:first-child');
+    await page.waitForSelector('.detail-modal', { state: 'hidden' });
+    assert.equal(await page.evaluate(() => document.querySelector('#wall-sort').value), 'desc', '打开并关闭详情保留当前排序');
+    await page.click('.filter-all');
+    await checkVisible(['布局验收 1', '布局验收 2', '布局验收 3', '布局验收 4']);
+    assert.equal(await page.evaluate(() => document.querySelector('#wall-sort').value), '');
     await page.selectOption('#wall-category', '项链');
     await checkVisible(['布局验收 1', '布局验收 4']);
     await page.selectOption('#wall-material', '925银');
@@ -380,13 +405,13 @@ export async function checkPhotoWall(page) {
     assert.equal(await page.evaluate(() => Boolean(document.querySelector('dialog:modal'))), false);
     await page.keyboard.press('Escape');
     await page.waitForSelector('.detail-modal', { state: 'hidden' });
-    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), '查看作品：布局验收 1');
+    await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === '查看作品：布局验收 1');
     await page.click('button[aria-label="查看作品：布局验收 2"]');
     await page.waitForSelector('.detail-photo-open', { state: 'visible' });
     await checkCenteredDetail();
     await page.keyboard.press('Escape');
     await page.waitForSelector('.detail-modal', { state: 'hidden' });
     assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
-    console.log(`${width}px: 价格、分类与材质单独/组合筛选、无匹配恢复、双列布局、联系入口、详情和全屏照片回归通过`);
+    console.log(`${width}px: 价格升降序、分类与材质组合筛选、未标价置后、全部恢复、响应式布局、联系入口、详情和全屏照片回归通过`);
   }
 }

@@ -26,6 +26,7 @@ export type Product = {
   material: string;
   size: string;
   price?: number;
+  pinOrder?: number;
   createdAt: string;
   updatedAt: string;
   photos: Photo[];
@@ -66,6 +67,33 @@ export function parsePrice(value: unknown): number | undefined {
 }
 
 export function formatPrice(price?: number): string { return price === undefined ? '暂未标价' : `¥${price.toFixed(2)}`; }
+
+function parsePinOrder(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) throw new Error('作品置顶顺序必须是有效的正整数');
+  return value;
+}
+
+export function toggleProductPin(products: Product[], id: string): Product[] {
+  const product = products.find((item) => item.id === id);
+  if (!product) return products;
+  const pinOrder = product.pinOrder === undefined ? parsePinOrder(products.reduce((maximum, item) => Math.max(maximum, item.pinOrder ?? 0), 0) + 1) : undefined;
+  return products.map((item) => item.id === id ? { ...item, pinOrder } : item);
+}
+
+export type PriceOrder = '' | 'asc' | 'desc';
+
+export function sortProducts(products: readonly Product[], priceOrder: PriceOrder = ''): Product[] {
+  return [...products].sort((first, second) => {
+    const pinDifference = (first.pinOrder ?? Infinity) - (second.pinOrder ?? Infinity);
+    if (pinDifference) return pinDifference;
+    if (priceOrder && first.pinOrder === undefined && second.pinOrder === undefined) {
+      const priceDifference = Number(first.price === undefined) - Number(second.price === undefined) || ((first.price ?? 0) - (second.price ?? 0)) * (priceOrder === 'asc' ? 1 : -1);
+      if (priceDifference) return priceDifference;
+    }
+    return second.createdAt.localeCompare(first.createdAt);
+  });
+}
 
 function filterValue(value: unknown): string { return typeof value === 'string' ? value.trim() : ''; }
 
@@ -119,7 +147,8 @@ export function parseProduct(input: unknown, incomplete = false): Product {
     return { id: photoId, src, thumbnail, width: positive(photo.width, 1600), height: positive(photo.height, 1600), bytes: positive(photo.bytes, DETAIL_BYTES), thumbnailBytes: positive(photo.thumbnailBytes, THUMB_BYTES), alt: text(photo.alt, textLimits.alt, '图片说明', !incomplete) };
   });
   const price = parsePrice(product.price);
-  return { id, name: text(product.name, textLimits.name, '名称', !incomplete), description: text(product.description, textLimits.description, '简介'), category: text(product.category, textLimits.category, '分类'), material: text(product.material, textLimits.material, '材质'), size: text(product.size ?? '', textLimits.size, '旧尺寸'), ...(price === undefined ? {} : { price }), createdAt: date(product.createdAt), updatedAt: date(product.updatedAt), photos };
+  const pinOrder = parsePinOrder(product.pinOrder);
+  return { id, name: text(product.name, textLimits.name, '名称', !incomplete), description: text(product.description, textLimits.description, '简介'), category: text(product.category, textLimits.category, '分类'), material: text(product.material, textLimits.material, '材质'), size: text(product.size ?? '', textLimits.size, '旧尺寸'), ...(price === undefined ? {} : { price }), ...(pinOrder === undefined ? {} : { pinOrder }), createdAt: date(product.createdAt), updatedAt: date(product.updatedAt), photos };
 }
 
 export function newProduct(): Product {

@@ -3,6 +3,14 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+async function discardEditor(page) {
+  if (!await page.evaluate(() => Boolean(document.querySelector('.editor-modal')))) return;
+  await page.click('.editor-actions button:first-child');
+  await page.click('.confirmation-modal .animal-modal-footer button:last-child');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
+  await page.waitForSelector('.save-status.saved');
+}
+
 export async function checkBackupImport(page) {
   const origin = 'http://127.0.0.1:4174';
   const state = async () => (await fetch(`${origin}/__test/state`)).json();
@@ -15,8 +23,11 @@ export async function checkBackupImport(page) {
     await page.waitForSelector('.save-status.saved');
   }
   async function selectBackup(filename) {
-    await page.setInputFiles('input[aria-label="选择草稿备份文件"]', [filename]);
-    await page.waitForFunction(() => document.querySelector('.animal-modal-title')?.textContent.includes('导入备份并覆盖'));
+    const selector = await page.evaluate(() => document.querySelector('.editor-modal') ? '.editor-draft-actions button:last-child' : '.draft-actions button:nth-child(2)');
+    const chooserEvent = page.waitForFileChooser({ timeout: 10_000 });
+    await page.click(selector);
+    await (await chooserEvent).setFiles(filename);
+    await page.waitForFunction(() => document.querySelector('.confirmation-modal .animal-modal-title')?.textContent.includes('导入备份并覆盖'));
   }
   async function checkOriginalEditor() {
     assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-name')?.value, document.querySelector('#work-price')?.value]), ['导入前保留内容', '77']);
@@ -24,8 +35,10 @@ export async function checkBackupImport(page) {
   await page.goto(`${origin}/#/admin`, { waitUntil: 'domcontentloaded' });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await login();
+  await discardEditor(page);
   await page.click('.draft-actions button:last-child');
   await page.click('.animal-modal-footer button:last-child');
+  await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
   await page.waitForSelector('.save-status.saved');
   const directory = await mkdtemp(join(tmpdir(), 'jianshi-backup-test-'));
   try {
@@ -44,19 +57,25 @@ export async function checkBackupImport(page) {
     await page.fill('#work-name', '导入前保留内容');
     await page.fill('#work-price', '77');
     await page.waitForSelector('.save-status.saved');
+    const editingDownload = page.waitForEvent('download', { timeout: 30_000 });
+    await page.click('.editor-draft-actions button:first-child');
+    const unfinishedFile = join(directory, 'unfinished-backup.json');
+    await (await editingDownload).saveAs(unfinishedFile);
+    assert.equal(JSON.parse(await readFile(unfinishedFile, 'utf8')).editing.name, '导入前保留内容', '弹窗内可备份尚未完成的编辑');
     await selectBackup(editingFile);
     await page.click('.animal-modal-footer button:first-child');
-    await page.waitForSelector('.animal-modal-overlay', { state: 'hidden' });
+    await page.waitForSelector('.confirmation-modal', { state: 'hidden' });
     await checkOriginalEditor();
+    await page.waitForFunction(() => document.querySelector('.editor-modal').contains(document.activeElement));
     const invalidFile = join(directory, 'invalid.json');
     await writeFile(invalidFile, '{broken');
     await page.setInputFiles('input[aria-label="选择草稿备份文件"]', [invalidFile]);
-    await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('备份未导入'));
+    await page.waitForFunction(() => document.querySelector('.editor-modal .notice.error')?.textContent.includes('备份未导入'));
     await checkOriginalEditor();
     await selectBackup(editingFile);
     await fetch(`${origin}/__test/control`, { method: 'POST', body: JSON.stringify({ failure: 403 }) });
     await page.click('.animal-modal-footer button:last-child');
-    await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('导入失败'));
+    await page.waitForFunction(() => document.querySelector('.editor-modal .notice.error')?.textContent.includes('导入失败'));
     await checkOriginalEditor();
     await selectBackup(editingFile);
     await page.evaluate(() => {
@@ -69,7 +88,7 @@ export async function checkBackupImport(page) {
     });
     try {
       await page.click('.animal-modal-footer button:last-child');
-      await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('导入失败'));
+      await page.waitForFunction(() => document.querySelector('.editor-modal .notice.error')?.textContent.includes('导入失败'));
       await checkOriginalEditor();
     } finally { await page.evaluate(() => window.__restoreBackupPut()); }
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -93,7 +112,7 @@ export async function checkBackupImport(page) {
     await selectBackup(backupFile);
     await page.click('.animal-modal-footer button:last-child');
     await page.waitForFunction(() => document.querySelector('.animal-notification-root')?.textContent.includes('备份已导入'));
-    await page.waitForSelector('.editor-placeholder');
+    await page.waitForSelector('.editor-modal', { state: 'hidden' });
     await page.waitForSelector('.save-status.saved');
     assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.work-row h3')].map(heading => heading.textContent)), payload.catalog.products.map(product => product.name));
     const finalState = await state();
@@ -105,32 +124,236 @@ export async function checkBackupImport(page) {
   } finally { await rm(directory, { recursive: true, force: true }); }
 }
 
+export async function checkWorkspaceModal(page) {
+  const origin = 'http://127.0.0.1:4174';
+  await page.cdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
+  const state = async () => (await fetch(`${origin}/__test/state`)).json();
+  const baseline = await state();
+  assert.ok(baseline.catalog.products.length >= 4, '请先生成隔离测试作品');
+  const names = () => page.evaluate(() => [...document.querySelectorAll('.work-row h3')].map(heading => heading.textContent));
+  async function confirmDiscard() {
+    await page.click('.confirmation-modal .animal-modal-footer button:last-child');
+    await page.waitForSelector('.editor-modal', { state: 'hidden' });
+    await page.waitForSelector('.save-status.saved');
+  }
+  await page.goto(`${origin}/#/admin`);
+  await page.reload();
+  await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
+  await page.click('.login-card button[type="submit"]');
+  await page.waitForSelector('.save-status.saved');
+  await discardEditor(page);
+  await page.click('.draft-actions button:last-child');
+  await page.click('.confirmation-modal .animal-modal-footer button:last-child');
+  await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
+  await page.waitForSelector('.save-status.saved');
+  assert.equal(await page.evaluate(() => Boolean(document.querySelector('.editor-placeholder, .editor-section, .admin-workspace'))), false);
+  await page.click('.works-list .section-heading button');
+  await page.waitForSelector('.editor-modal .animal-notification-root');
+  await page.click('button[aria-label="关闭作品编辑器"]');
+  await confirmDiscard();
+  for (const close of [
+    () => page.click('button[aria-label="关闭作品编辑器"]'),
+    () => page.keyboard.press('Escape'),
+    () => page.mouse.click(4, 4),
+  ]) {
+    await page.click('.work-row-copy button >> nth=0');
+    await page.fill('#work-name', '取消时应保留的内容');
+    await page.fill('#work-price', '0.001');
+    await close();
+    await page.waitForSelector('.confirmation-modal');
+    await page.click('.confirmation-modal .animal-modal-footer button:first-child');
+    await page.waitForSelector('.confirmation-modal', { state: 'hidden' });
+    assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-name').value, document.querySelector('#work-price').value, document.querySelector('#work-price').validity.valid]), ['取消时应保留的内容', '0.001', false]);
+    await page.waitForFunction(() => document.querySelector('.editor-modal').contains(document.activeElement));
+    await close();
+    await confirmDiscard();
+    assert.deepEqual(await names(), baseline.catalog.products.map(product => product.name));
+    await page.waitForFunction(() => document.activeElement === document.querySelector('.work-row-copy button'));
+  }
+  await page.click('.work-row-copy button >> nth=0');
+  await page.fill('#work-name', '长名称'.repeat(20));
+  await page.fill('#work-price', '23.45');
+  await page.evaluate(() => { window.__editorPriceInput = document.querySelector('#work-price'); });
+  await page.click('.editor-actions button:nth-child(2)');
+  await page.waitForSelector('.detail-modal');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.detail-modal', { state: 'hidden' });
+  assert.deepEqual(await page.evaluate(() => [Boolean(document.querySelector('.confirmation-modal')), document.querySelector('#work-price') === window.__editorPriceInput, document.querySelector('#work-price').value]), [false, true, '23.45']);
+  await page.evaluate(() => {
+    delete window.__editorPriceInput;
+    const originalPut = IDBObjectStore.prototype.put;
+    window.__restoreEditorPut = () => { IDBObjectStore.prototype.put = originalPut; delete window.__restoreEditorPut; };
+    IDBObjectStore.prototype.put = function (...args) {
+      if (this.name === 'drafts') throw new DOMException('Test quota failure', 'QuotaExceededError');
+      return originalPut.apply(this, args);
+    };
+  });
+  try {
+    await page.fill('#work-description', '弹窗保存失败后可以重试');
+    await page.waitForSelector('.editor-modal .save-status.error');
+    assert.equal(await page.evaluate(() => document.querySelector('.editor-modal [role="alert"]').textContent.includes('重试保存')), true);
+  } finally { await page.evaluate(() => window.__restoreEditorPut()); }
+  await page.click('.editor-modal .notice.error button');
+  await page.waitForSelector('.editor-modal .save-status.saved');
+  await page.click('.editor-actions button[type="submit"]');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
+  for (const [width, columns] of [[1440, 4], [1000, 3], [801, 3], [800, 2], [390, 2], [361, 2], [360, 1], [320, 1]]) {
+    await page.cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 800 });
+    const layout = await page.evaluate(() => {
+      const grid = document.querySelector('.works-grid');
+      const list = document.querySelector('.works-list');
+      return { columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length, fullWidth: Math.abs(grid.getBoundingClientRect().width - list.getBoundingClientRect().width) < 1, overflow: document.documentElement.scrollWidth > innerWidth, cardsContained: [...grid.children].every(card => card.scrollWidth <= card.clientWidth + 1) };
+    });
+    assert.deepEqual(layout, { columns, fullWidth: true, overflow: false, cardsContained: true }, `${width}px 网格铺满工作区，长标题与操作按钮不溢出`);
+    await page.click('.works-list .section-heading button');
+    await page.waitForSelector('.editor-modal');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.editor-modal')).animationName === 'none' || document.querySelector('.editor-modal').getAnimations().every(animation => animation.playState === 'finished'));
+    assert.equal(await page.evaluate(() => {
+      const modal = document.querySelector('.editor-modal');
+      const bounds = modal.getBoundingClientRect();
+      const body = modal.querySelector('.animal-modal-body');
+      return bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight && body.scrollWidth <= body.clientWidth + 1 && ['auto', 'scroll'].includes(getComputedStyle(body).overflowY);
+    }), true, `${width}px 编辑弹窗完整显示且内容可内部滚动`);
+    await page.fill('#work-name', '缺少照片应阻止保存');
+    await page.click('.editor-actions button[type="submit"]');
+    await page.waitForSelector('.editor-modal [role="alert"]');
+    assert.equal(await page.evaluate(() => {
+      const notice = document.querySelector('.editor-modal [role="alert"]').getBoundingClientRect();
+      const body = document.querySelector('.editor-modal .animal-modal-body').getBoundingClientRect();
+      return notice.top >= body.top - 1 && notice.bottom <= body.bottom + 1;
+    }), true, '在表单底部提交失败时，错误提示也必须可见');
+    await page.click('.editor-actions button:first-child');
+    await confirmDiscard();
+    await page.waitForFunction(() => document.activeElement === document.querySelector('.works-list .section-heading button'));
+  }
+  await page.click('.draft-actions button:last-child');
+  await page.click('.confirmation-modal .animal-modal-footer button:last-child');
+  await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
+  await page.waitForSelector('.save-status.saved');
+  assert.deepEqual(await names(), baseline.catalog.products.map(product => product.name));
+  assert.deepEqual((await state()).catalog, baseline.catalog, '布局和编辑验收不能自动发布');
+  assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
+  console.log('工作台网格断点/长标题、弹窗关闭确认/焦点、嵌套预览、保存失败重试与表单校验验收通过');
+}
+
+export async function checkProductPins(page, visitor) {
+  const origin = 'http://127.0.0.1:4174';
+  const state = async () => (await fetch(`${origin}/__test/state`)).json();
+  const baseline = await state();
+  const products = baseline.catalog.products;
+  assert.ok(products.length >= 4 && products.every(product => product.pinOrder === undefined), '请先生成未置顶的隔离作品');
+  const originalOrder = [...products].sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+  const visibleNames = () => visitor.evaluate(() => [...document.querySelectorAll('.photo-caption-heading h3')].map(heading => heading.textContent));
+  const pinButton = position => `.work-row:nth-child(${position + 1}) .work-pin-button`;
+  async function login() {
+    await page.waitForSelector('#github-token');
+    await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
+    await page.click('.login-card button[type="submit"]');
+    await page.waitForSelector('.save-status.saved');
+  }
+  async function publish() {
+    await page.waitForSelector('.publish-panel > button:not([disabled])');
+    await page.click('.publish-panel > button');
+    await page.waitForFunction(() => document.querySelector('.notice.success')?.textContent.includes('网站已更新'));
+    await visitor.reload();
+    await visitor.waitForSelector('.photo-grid');
+  }
+  await page.goto(`${origin}/#/admin`);
+  await page.reload();
+  await login();
+  await discardEditor(page);
+  await page.click('.draft-actions button:last-child');
+  await page.click('.confirmation-modal .animal-modal-footer button:last-child');
+  await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
+  await page.waitForSelector('.save-status.saved');
+  await visitor.goto(origin);
+  await visitor.waitForSelector('.photo-grid');
+  for (const position of [2, 0, 1]) await page.click(pinButton(position));
+  await page.waitForSelector('.save-status.saved');
+  assert.deepEqual((await state()).catalog, baseline.catalog, '置顶只能修改本机，不能自动发布');
+  assert.deepEqual(await visibleNames(), originalOrder.map(product => product.name));
+  assert.equal(await page.evaluate(() => document.querySelectorAll('.work-pin-button[aria-pressed="true"]').length), 3);
+  await page.click('.work-row:nth-child(3) .work-row-copy button:first-child');
+  await page.click('.editor-actions button[type="submit"]');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
+  await page.waitForSelector('.save-status.saved');
+  await page.reload();
+  await login();
+  assert.equal(await page.evaluate(() => document.querySelectorAll('.work-pin-button[aria-pressed="true"]').length), 3, '编辑和刷新不能丢失置顶');
+  const directory = await mkdtemp(join(tmpdir(), 'jianshi-pin-test-'));
+  try {
+    const downloadEvent = page.waitForEvent('download', { timeout: 30_000 });
+    await page.click('.draft-actions button:first-child');
+    const backupFile = join(directory, 'pinned-backup.json');
+    await (await downloadEvent).saveAs(backupFile);
+    const backup = JSON.parse(await readFile(backupFile, 'utf8'));
+    assert.deepEqual(backup.catalog.products.slice(0, 4).map(product => product.pinOrder), [2, 3, 1, undefined]);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+  await publish();
+  const ordered = [products[2], products[0], products[1], ...originalOrder.filter(product => !products.slice(0, 3).some(pinned => pinned.id === product.id))];
+  assert.deepEqual(await visibleNames(), ordered.map(product => product.name), '先置顶先展示，后续按点击顺序排在队尾');
+  assert.equal(await visitor.evaluate(() => document.querySelectorAll('.photo-pin').length), 3);
+  for (const width of [320, 361, 390, 480, 481, 800, 801, 1000, 1001, 1100, 1440]) {
+    for (const target of [page, visitor]) await target.cdp('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 800 });
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('.work-pin-button')].every(button => {
+      const pin = button.getBoundingClientRect();
+      const remove = button.previousElementSibling.getBoundingClientRect();
+      return button.previousElementSibling.textContent === '删除' && pin.left >= remove.right - 1 && Math.abs(pin.top - remove.top) < 1;
+    })), true, `${width}px 置顶按钮保持在删除右侧`);
+    assert.equal(await visitor.evaluate(() => [...document.querySelectorAll('.photo-pin')].every(badge => {
+      const card = badge.closest('.photo-memory').getBoundingClientRect();
+      const bounds = badge.getBoundingClientRect();
+      return badge.textContent === '置顶' && bounds.left >= card.left && bounds.right <= card.right;
+    })), true, `${width}px 置顶徽标不溢出`);
+    for (const target of [page, visitor]) assert.equal(await target.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  }
+  await visitor.selectOption('#wall-category', products[0].category);
+  assert.deepEqual(await visibleNames(), ordered.filter(product => product.category === products[0].category).map(product => product.name));
+  await visitor.selectOption('#wall-category', '');
+  await visitor.selectOption('#wall-material', products[0].material);
+  assert.deepEqual(await visibleNames(), ordered.filter(product => product.material === products[0].material).map(product => product.name));
+  await page.click(pinButton(2));
+  await publish();
+  assert.deepEqual((await visibleNames()).slice(0, 2), [products[0].name, products[1].name]);
+  assert.equal(await visitor.evaluate(() => document.querySelectorAll('.photo-pin').length), 2);
+  await visitor.selectOption('#wall-sort', 'asc');
+  assert.deepEqual(await visibleNames(), [products[0], products[1], products[3], products[2]].map(product => product.name), '价格升序不能打乱置顶先后，未标价排在普通作品末尾');
+  await visitor.selectOption('#wall-sort', 'desc');
+  assert.deepEqual(await visibleNames(), [products[0], products[1], products[3], products[2]].map(product => product.name), '价格降序也保留置顶先后和未标价置后');
+  await page.click(pinButton(2));
+  await publish();
+  assert.deepEqual((await visibleNames()).slice(0, 3), products.slice(0, 3).map(product => product.name), '重新置顶进入当前置顶队尾');
+  for (const position of [0, 1, 2]) await page.click(pinButton(position));
+  await publish();
+  assert.deepEqual(await visibleNames(), originalOrder.map(product => product.name));
+  assert.equal(await visitor.evaluate(() => document.querySelectorAll('.photo-pin').length), 0);
+  assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
+  assert.deepEqual(await visitor.evaluate(() => window.__pageErrors), []);
+  console.log('多作品顺序置顶/取消和重新置顶、编辑/刷新/备份保留、发布生效、筛选排序和响应式徽标验收通过');
+}
+
 export async function checkNewWorkSync(page) {
   const origin = 'http://127.0.0.1:4174';
   const state = async () => (await fetch(`${origin}/__test/state`)).json();
   const names = () => page.evaluate(() => [...document.querySelectorAll('.work-row h3')].map(heading => heading.textContent));
-  async function cancelEditor() {
-    await page.click('.editor-actions button:first-child');
-    await page.click('.animal-modal-footer button:last-child');
-    await page.waitForSelector('.editor-placeholder');
-    await page.waitForSelector('.save-status.saved');
-  }
   await page.goto(`${origin}/#/admin`);
   await page.reload();
   await page.waitForSelector('#github-token');
   await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
   await page.click('.login-card button[type="submit"]');
   await page.waitForSelector('.save-status.saved');
+  await discardEditor(page);
   await page.click('.draft-actions button:last-child');
   await page.click('.animal-modal-footer button:last-child');
+  await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
   await page.waitForSelector('.save-status.saved');
-  await page.waitForSelector('.editor-placeholder');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
   const baseline = await state();
   assert.ok(baseline.catalog.products.length > 0, '隔离清单需要至少一件作品');
   await page.click('.work-row-copy button >> nth=0');
   await page.fill('#work-name', '自动核对保留本地草稿');
   await page.click('.editor-actions button[type="submit"]');
-  await page.waitForSelector('.editor-placeholder');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
   await page.waitForSelector('.save-status.saved');
   const draftNames = await names();
   for (const width of [390, 1440]) {
@@ -148,7 +371,7 @@ export async function checkNewWorkSync(page) {
     assert.equal(await page.evaluate(() => document.querySelector('#work-name').value), '');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.deepEqual(await names(), draftNames, '核对后仍保留待发布修改');
-    await cancelEditor();
+    await discardEditor(page);
   }
   for (const failure of [429, 403]) {
     await fetch(`${origin}/__test/control`, { method: 'POST', body: JSON.stringify({ failure }) });
@@ -197,7 +420,7 @@ export async function checkNewWorkSync(page) {
   }
   await page.waitForSelector('#work-name');
   assert.equal((await state()).calls.length - beforeSlowCheck.calls.length, 3, '核对期间重复点击不增加请求');
-  await cancelEditor();
+  await discardEditor(page);
   await fetch(`${origin}/__test/control`, { method: 'POST', body: JSON.stringify({ advanceHead: true }) });
   await page.click('.works-list .section-heading button');
   await page.waitForFunction(() => document.querySelector('.admin-page > .notice.error')?.textContent.includes('远端已有新的提交'));
@@ -215,6 +438,7 @@ export async function checkCatalogEditor(page, visitor) {
   const origin = 'http://127.0.0.1:4174';
   async function checkEditorOptions(products) {
     for (const field of ['category', 'material']) {
+      await page.waitForSelector(`#work-${field}`);
       const input = await page.evaluate(field => {
         const input = document.getElementById(`work-${field}`);
         return { editable: input.type === 'text' && !input.readOnly && !input.disabled, values: [...input.list.options].map(option => option.value) };
@@ -247,8 +471,10 @@ export async function checkCatalogEditor(page, visitor) {
   await page.reload();
   console.log(await page.snapshot());
   await login();
+  await discardEditor(page);
   await page.click('.draft-actions button:last-child');
   await page.click('.animal-modal-footer button:last-child');
+  await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
   await page.waitForSelector('.save-status.saved');
   await page.click('.work-row button >> nth=0');
   await checkEditorOptions(state.catalog.products);
@@ -273,7 +499,7 @@ export async function checkCatalogEditor(page, visitor) {
   await login();
   assert.equal(await page.evaluate(() => document.querySelector('#work-price').value), '19.95', '刷新后应恢复未完成的价格草稿');
   await page.click('.editor-actions button[type="submit"]');
-  await page.waitForSelector('.editor-placeholder');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
   await publish();
   await visitor.waitForFunction(() => document.querySelector('.photo-price')?.textContent === '¥19.95');
   assert.equal(await visitor.evaluate(() => document.querySelector('#wall-category').value), '项链');
@@ -305,13 +531,13 @@ export async function checkCatalogEditor(page, visitor) {
     await page.waitForSelector('.crop-modal', { state: 'hidden' });
   } finally { await rm(directory, { recursive: true, force: true }); }
   await page.click('.editor-actions button[type="submit"]');
-  await page.waitForSelector('.editor-placeholder');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
   await page.click('.work-row-copy button >> nth=0');
   await checkEditorOptions([...state.catalog.products, { category: '耳环', material: '黄铜' }]);
   assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-category').value, document.querySelector('#work-material').value]), ['耳环', '黄铜']);
   await page.click('.editor-actions button:first-child');
   await page.click('.animal-modal-footer button:last-child');
-  await page.waitForSelector('.editor-placeholder');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
   await publish();
   await visitor.waitForFunction(() => [...document.querySelector('#wall-category').options].some((option) => option.value === '耳环'));
   assert.equal(await visitor.evaluate(() => [...document.querySelector('#wall-material').options].some((option) => option.value === '黄铜')), true);
@@ -335,7 +561,7 @@ export async function checkCatalogEditor(page, visitor) {
       document.dispatchEvent(new Event('visibilitychange'));
     });
     await visitor.waitForSelector('.empty-wall');
-    assert.deepEqual(await visitor.evaluate(() => [...document.querySelectorAll('.wall-filters select')].map((select) => ({ disabled: select.disabled, options: select.options.length }))), [{ disabled: true, options: 1 }, { disabled: true, options: 1 }]);
+    assert.deepEqual(await visitor.evaluate(() => [...document.querySelectorAll('.wall-filters select')].map((select) => ({ disabled: select.disabled, options: select.options.length }))), [{ disabled: true, options: 1 }, { disabled: true, options: 1 }, { disabled: true, options: 3 }]);
     await visitor.evaluate(() => { window.fetch = window.__originalCatalogFetch; document.dispatchEvent(new Event('visibilitychange')); });
     await visitor.waitForSelector('.photo-grid');
     await visitor.evaluate(() => {

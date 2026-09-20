@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Carousel, Icon, Tag } from 'animal-island-ui-tailwind';
-import { Eye, Flower, Heart, Image, Leaf, Sun, X } from 'lucide-react';
+import { Eye, Flower, Heart, Image, Leaf, Pin, Sun, X } from 'lucide-react';
 import Modal from './Modal';
 import { WechatButton } from './Contact';
-import type { Photo, Product } from './catalog';
-import { filterProducts, formatPrice, getFilterOptions } from './catalog';
+import type { Photo, PriceOrder, Product } from './catalog';
+import { filterProducts, formatPrice, getFilterOptions, sortProducts } from './catalog';
 import { assetUrl } from './config';
 
 export function PhotoImage({ photo, detail = false, source, retry = true }: { photo: Photo; detail?: boolean; source?: string; retry?: boolean }) {
@@ -85,28 +85,30 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
 export default function PhotoWall({ products }: { products: Product[] }) {
   const [selected, setSelected] = useState<Product | null>(null);
   const [filters, setFilters] = useState({ category: '', material: '' });
+  const [priceOrder, setPriceOrder] = useState<PriceOrder>('');
   const options = useMemo(() => getFilterOptions(products), [products]);
-  const ordered = useMemo(() => [...products].sort((first, second) => second.createdAt.localeCompare(first.createdAt)), [products]);
+  const ordered = useMemo(() => sortProducts(products, priceOrder), [products, priceOrder]);
   const category = options.categories.includes(filters.category) ? filters.category : '';
   const material = options.materials.includes(filters.material) ? filters.material : '';
   const filtered = Boolean(category || material);
   const visible = useMemo(() => filterProducts(ordered, category, material), [ordered, category, material]);
-  const clearFilters = () => setFilters({ category: '', material: '' });
+  const clearFilters = () => { setFilters({ category: '', material: '' }); setPriceOrder(''); };
   return <>
     <section className="wall-section" id="works" aria-labelledby="wall-title">
       <div className="wall-topline"><div><span className="section-dot" /><h2 id="wall-title">手作公告墙</h2><span className="count-label">{filtered ? `${visible.length} / ${products.length}` : products.length} 件小小的心意</span></div><span className="wall-hint"><Icon icon={Eye} size={15} /> 点开照片，看看它的故事</span></div>
-      <div className="wall-filters" role="group" aria-label="作品分类筛选">
-        <Button className="filter-all" type={filtered ? 'default' : 'primary'} aria-pressed={!filtered} onClick={clearFilters}>全部</Button>
+      <div className="wall-filters" role="group" aria-label="作品筛选与排序">
+        <Button className="filter-all" type={filtered || priceOrder ? 'default' : 'primary'} aria-pressed={!filtered && !priceOrder} onClick={clearFilters}>全部</Button>
         <label className={`filter-field ${category ? 'is-active' : ''}`} htmlFor="wall-category">分类<select id="wall-category" value={category} disabled={!options.categories.length} onChange={(event) => setFilters({ category: event.target.value, material })}><option value="">全部分类</option>{options.categories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         <label className={`filter-field ${material ? 'is-active' : ''}`} htmlFor="wall-material">材质<select id="wall-material" value={material} disabled={!options.materials.length} onChange={(event) => setFilters({ category, material: event.target.value })}><option value="">全部材质</option>{options.materials.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+        <label className={`filter-field ${priceOrder ? 'is-active' : ''}`} htmlFor="wall-sort">排序<select id="wall-sort" value={priceOrder} disabled={!products.length} onChange={(event) => setPriceOrder(event.target.value as PriceOrder)}><option value="" hidden>默认排序</option><option value="asc">价格从低到高</option><option value="desc">价格从高到低</option></select></label>
       </div>
-      <p className="filter-summary" role="status" aria-live="polite">{filtered ? `当前：${category || '全部分类'} · ${material || '全部材质'}` : '当前：全部作品'} · 共 {visible.length} 件</p>
+      <p className="filter-summary" role="status" aria-live="polite">{filtered ? `当前：${category || '全部分类'} · ${material || '全部材质'}` : '当前：全部作品'}{priceOrder && ` · 价格从${priceOrder === 'asc' ? '低到高' : '高到低'}（置顶优先）`} · 共 {visible.length} 件</p>
       <div className={`cork-board ${products.length ? '' : 'is-empty'}`}>
         <span className="board-screw screw-left" aria-hidden="true" /><span className="board-screw screw-right" aria-hidden="true" />
         {visible.length ? <div className="photo-grid" key={JSON.stringify([category, material])}>{visible.map((product) => <figure className="photo-memory" key={product.id}>
           <Button type="text" className="photo-open" aria-label={`查看作品：${product.name}`} onClick={() => setSelected(product)}><PhotoImage photo={product.photos[0]} retry={false} /></Button>
           <figcaption>
-            <div className="photo-caption-heading"><h3>{product.name}</h3></div>
+            <div className="photo-caption-heading"><h3>{product.name}</h3>{product.pinOrder !== undefined && <span className="photo-pin"><Icon icon={Pin} size={12} />置顶</span>}</div>
             {(product.category || product.material) && <div className="photo-tags">
               {product.category && <Tag size="small" color="app-green" variant="soft" className="photo-category"><span title={`分类：${product.category}`}>{product.category}</span></Tag>}
               {product.material && <Tag size="small" variant="soft" className="photo-material"><span title={`材质：${product.material}`}>{product.material}</span></Tag>}

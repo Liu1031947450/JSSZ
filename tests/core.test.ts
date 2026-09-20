@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
-import { acknowledgePublication, DETAIL_BYTES, filterProducts, formatBytes, formatPrice, getFilterOptions, imagePaths, isImagePath, MAX_FILE_BYTES, newProduct, parseCatalog, parsePrice, usedBytes, validateFileHeader } from '../src/catalog.ts';
+import { acknowledgePublication, DETAIL_BYTES, filterProducts, formatBytes, formatPrice, getFilterOptions, imagePaths, isImagePath, MAX_FILE_BYTES, newProduct, parseCatalog, parsePrice, sortProducts, toggleProductPin, usedBytes, validateFileHeader } from '../src/catalog.ts';
 import type { Catalog, Draft, Product } from '../src/catalog.ts';
 import { authenticate, encodeBase64, fetchPublishedCatalog, GitHubError, publishCatalog, readBackupImage, readSnapshot, repositoryPath } from '../src/github.ts';
 import type { Snapshot } from '../src/github.ts';
@@ -114,6 +114,60 @@ test('筛选支持全部、单独分类、单独材质及交集，无匹配返�
   assert.deepEqual(filterProducts(products, '项链', '925银'), [products[0]]);
   assert.deepEqual(filterProducts(products, '手链', '珍珠'), []);
   assert.deepEqual(filterProducts([], '项链', '925银'), []);
+});
+
+test('置顶顺序兼容旧作品，并拒绝无效类型、非正整数和溢出', () => {
+  assert.deepEqual(parseCatalog(catalog([product()])).products[0], product());
+  assert.equal(newProduct().pinOrder, undefined);
+  for (const pinOrder of [1, 2, Number.MAX_SAFE_INTEGER]) assert.equal(parseCatalog(catalog([{ ...product(), pinOrder }])).products[0].pinOrder, pinOrder);
+  for (const pinOrder of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, '1', null, true]) {
+    assert.throws(() => parseCatalog(catalog([{ ...product(), pinOrder } as Product])), /置顶顺序/);
+  }
+});
+
+test('多个作品按置顶先后排序，取消后恢复时间排序，再次置顶排在队尾', () => {
+  const products = Array.from({ length: 4 }, (_, position) => ({ ...product(), id: crypto.randomUUID(), name: `作品 ${position}`, createdAt: `2026-09-${16 + position}T00:00:00.000Z` }));
+  const original = structuredClone(products);
+  const ids = (items: Product[]) => sortProducts(items).map(item => item.id);
+  const first = products[0]; const second = products[1]; const third = products[2]; const fourth = products[3];
+  assert.deepEqual(ids(products), [fourth.id, third.id, second.id, first.id]);
+  let pinned = toggleProductPin(products, second.id);
+  pinned = toggleProductPin(pinned, first.id);
+  pinned = toggleProductPin(pinned, third.id);
+  assert.deepEqual(pinned.map(item => item.pinOrder), [2, 1, 3, undefined]);
+  assert.deepEqual(ids(pinned), [second.id, first.id, third.id, fourth.id]);
+  assert.deepEqual(filterProducts(sortProducts(pinned), '编织').map(item => item.id), ids(pinned));
+  pinned = toggleProductPin(pinned, second.id);
+  assert.deepEqual(ids(pinned), [first.id, third.id, fourth.id, second.id]);
+  pinned = toggleProductPin(pinned, second.id);
+  assert.equal(pinned[1].pinOrder, 4);
+  assert.deepEqual(ids(pinned), [first.id, third.id, second.id, fourth.id]);
+  assert.deepEqual(ids(pinned.filter(item => item.id !== first.id)), [third.id, second.id, fourth.id]);
+  for (const item of [first, second, third]) pinned = toggleProductPin(pinned, item.id);
+  assert.deepEqual(ids(pinned), ids(original));
+  assert.deepEqual(products, original, '置顶与排序均不能修改传入的作品或清单顺序');
+  assert.equal(toggleProductPin(products, 'missing'), products);
+  assert.deepEqual(sortProducts([]), []);
+  assert.throws(() => toggleProductPin([{ ...first, pinOrder: Number.MAX_SAFE_INTEGER }, second], second.id), /置顶顺序/);
+});
+
+test('价格升降序按数值排列，零元有效，同价按创建时间，未标价始终在后', () => {
+  const products = [12.5, undefined, 0, 2, 12.5, undefined].map((price, position) => ({ ...product(), id: crypto.randomUUID(), price, createdAt: `2026-09-${14 + position}T00:00:00.000Z` }));
+  const original = structuredClone(products);
+  assert.deepEqual(sortProducts(products, 'asc'), [products[2], products[3], products[4], products[0], products[5], products[1]]);
+  assert.deepEqual(sortProducts(products, 'desc'), [products[4], products[0], products[3], products[2], products[5], products[1]]);
+  assert.deepEqual(sortProducts(products, ''), [...products].reverse());
+  assert.deepEqual(sortProducts([], 'asc'), []);
+  assert.deepEqual(sortProducts([products[0]], 'desc'), [products[0]]);
+  assert.deepEqual(products, original);
+});
+
+test('价格排序保留先置顶先展示，只排序未置顶作品，筛选后仍有效', () => {
+  const products = [128.5, undefined, 0, 48, 2].map((price, position) => ({ ...product(), id: crypto.randomUUID(), price, category: position === 0 ? '首饰' : '编织' }));
+  const pinned = toggleProductPin(toggleProductPin(products, products[1].id), products[0].id);
+  assert.deepEqual(sortProducts(pinned, 'asc'), [pinned[1], pinned[0], pinned[2], pinned[4], pinned[3]]);
+  assert.deepEqual(sortProducts(pinned, 'desc'), [pinned[1], pinned[0], pinned[3], pinned[4], pinned[2]]);
+  assert.deepEqual(filterProducts(sortProducts(pinned, 'desc'), '编织'), [pinned[1], pinned[3], pinned[4], pinned[2]]);
 });
 
 test('清单拒绝缺失名称、超限字段、未知版本和重复作品', () => {
@@ -270,6 +324,22 @@ test('价格保存到发布清单，无效价格在任何网络写入前被拦�
   assert.equal(result.catalog.products[0].price, 128.5);
 });
 
+test('置顶与取消置顶随清单发布，不重新上传已有图片', async (context) => {
+  const calls = mockGitHub(context);
+  const { snapshot, draft } = fixture(catalog([product()]));
+  draft.assets = {};
+  draft.catalog.products = toggleProductPin(draft.catalog.products, productId);
+  const published = await publishCatalog(repository, token, snapshot, draft, () => {});
+  assert.equal(published.catalog.products[0].pinOrder, 1);
+  let manifests = calls.filter(call => call.body?.encoding === 'utf-8');
+  assert.equal(JSON.parse(manifests[0].body.content).products[0].pinOrder, 1);
+  draft.catalog.products = toggleProductPin(draft.catalog.products, productId);
+  await publishCatalog(repository, token, snapshot, draft, () => {});
+  manifests = calls.filter(call => call.body?.encoding === 'utf-8');
+  assert.equal(JSON.parse(manifests[1].body.content).products[0].pinOrder, undefined);
+  assert.equal(calls.some(call => call.body?.encoding === 'base64'), false);
+});
+
 test('远端预检冲突时不写入任何对象', async (context) => {
   const calls = mockGitHub(context, (call) => call.url.includes('/git/ref/') ? Response.json({ object: { sha: 'other-commit' } }) : undefined);
   const { snapshot, draft } = fixture();
@@ -406,15 +476,17 @@ test('公开读取成功或失败后清理超时和外部取消监听', async (c
   assert.equal(cleared.mock.callCount(), 3);
 });
 
-test('备份可完整往返，保留未完成编辑与空作品集，不恢复待发布状态或额外字段', async () => {
+test('备份可完整往返，保留置顶顺序、未完成编辑与空作品集，不恢复待发布状态或额外字段', async () => {
   const { draft } = fixture();
-  draft.editing = newProduct();
+  draft.catalog.products = toggleProductPin(draft.catalog.products, productId);
+  draft.editing = { ...newProduct(), pinOrder: 2 };
   const payload = JSON.parse(await (await encodeDraftBackup(draft)).text());
   assert.equal(payload.format, 'jianshi-draft-backup-v1');
   assert.equal(payload.pendingRevision, undefined);
   const restored = parseDraftBackup({ ...payload, pendingRevision: 'old-release', token: 'not-imported' });
   assert.deepEqual(restored.catalog, draft.catalog);
   assert.deepEqual(restored.editing, draft.editing);
+  assert.throws(() => parseDraftBackup({ ...payload, editing: { ...payload.editing, pinOrder: -1 } }), /置顶顺序/);
   assert.equal(restored.pendingRevision, undefined);
   assert.equal('token' in restored, false);
   for (const path of imagePaths(draft.catalog)) assert.deepEqual(new Uint8Array(await restored.assets[path].arrayBuffer()), webp);
