@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "revision": "250bb6cf-16b4-4dc1-871a-517fe5d6add1",
-  "updatedAt": "2026-09-19T09:13:10.141Z",
+  "revision": "77728789-c68f-4d67-8416-a550dfbeb263",
+  "updatedAt": "2026-09-20T02:38:59.856Z",
   "products": [
     {
       "id": "c87f1213-8187-4861-8641-3d0a001ea773",
@@ -10,6 +10,7 @@
       "category": "",
       "material": "",
       "size": "",
+      "pinOrder": 2,
       "createdAt": "2026-09-19T09:09:58.088Z",
       "updatedAt": "2026-09-19T09:10:39.154Z",
       "photos": [
@@ -32,6 +33,7 @@
       "category": "",
       "material": "",
       "size": "",
+      "pinOrder": 1,
       "createdAt": "2026-09-19T09:09:31.800Z",
       "updatedAt": "2026-09-19T09:09:50.541Z",
       "photos": [
