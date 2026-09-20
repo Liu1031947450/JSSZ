@@ -281,6 +281,9 @@ test('上传要求扩展名、MIME 和文件头一致', () => {
 
 test('上传拒绝空文件、过大文件和截断文件头', () => {
   for (const size of [0, MAX_FILE_BYTES + 1]) assert.throws(() => validateFileHeader({ name: 'photo.webp', type: 'image/webp', size }, webp));
+  validateFileHeader({ name: 'photo.webp', type: 'image/webp', size: MAX_FILE_BYTES + 1 }, webp, true);
+  assert.throws(() => validateFileHeader({ name: 'photo.webp', type: 'image/webp', size: 0 }, webp, true));
+  assert.throws(() => validateFileHeader({ name: 'photo.png', type: 'image/png', size: MAX_FILE_BYTES + 1 }, webp, true));
   assert.throws(() => validateFileHeader({ name: 'photo.png', type: 'image/png', size: 100 }, new Uint8Array([137, 80])));
 });
 

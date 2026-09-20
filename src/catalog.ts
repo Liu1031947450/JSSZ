@@ -189,8 +189,8 @@ export function usedBytes(catalog: Catalog): number {
 export function formatBytes(bytes: number): string { return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 export function messageOf(error: unknown): string { return error instanceof Error ? error.message : '操作未完成，请重试'; }
 
-export function validateFileHeader(file: { name: string; type: string; size: number }, header: Uint8Array): void {
-  if (!file.size || file.size > MAX_FILE_BYTES) throw new Error('请选择非空且不超过 10MB 的图片');
+export function validateFileHeader(file: { name: string; type: string; size: number }, header: Uint8Array, allowCompression = false): void {
+  if (!file.size || (!allowCompression && file.size > MAX_FILE_BYTES)) throw new Error('请选择非空且不超过 10MB 的图片');
   const extension = file.name.split('.').pop()?.toLowerCase();
   const signature = String.fromCharCode(...header.slice(0, 12));
   const jpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;

@@ -319,9 +319,11 @@ textarea::placeholder { color: #999d8a; }
 .privacy-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 30px; color: var(--muted); font-size: 10px; line-height: 1.9; }
 .privacy-note svg { margin-top: 3px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-.crop-modal { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); animation: crop-enter .2s ease; }.crop-modal .animal-modal-body { min-height: 0; overflow: auto; }
+.crop-modal { max-width: calc(100vw - 24px); max-height: calc(var(--editor-viewport-height, 100vh) - 32px); max-height: calc(var(--editor-viewport-height, 100dvh) - 32px); top: calc(var(--editor-viewport-top, 0px) + var(--editor-viewport-height, 100vh) / 2); animation: crop-enter .2s ease; }.crop-modal .animal-modal-clipped { max-height: inherit; }.crop-modal .animal-modal-body { min-height: 0; overflow: auto; overscroll-behavior: contain; }.crop-modal .animal-modal-body > * { flex-shrink: 0; }
+.crop-modal .animal-modal-header, .crop-modal .animal-modal-footer { flex-shrink: 0; }.crop-modal .animal-modal-footer { flex-wrap: wrap; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
 .crop-description { margin-bottom: 16px; font-size: 11px; line-height: 1.9; }
 .crop-stage { position: relative; width: 100%; height: min(42dvh, 360px); min-height: 190px; background: #31372e; border-radius: 12px; overflow: hidden; }.crop-stage > p { height: 100%; display: grid; place-items: center; color: #e3e9d7; font-size: 12px; }
+.crop-rotation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }.crop-rotation button { min-height: 44px; font-size: 11px; }.crop-rotation > span { color: var(--muted); font-size: 11px; }
 .crop-controls { display: grid; grid-template-columns: 1fr 1.2fr auto; align-items: end; gap: 18px; }.crop-controls label { margin-bottom: 0; }.crop-controls select { display: block; margin-top: 6px; font-size: 12px; }.crop-controls label > span { float: right; color: var(--muted); }.crop-controls input[type='range'] { width: 100%; min-height: 44px; display: block; accent-color: #81966a; touch-action: pan-y; }.crop-controls button { font-size: 11px; }
 .confirmation-copy { font-size: 13px; line-height: 2; color: var(--muted); }
 @keyframes modal-enter { from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(.98); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
