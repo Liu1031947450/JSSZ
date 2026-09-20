@@ -91,8 +91,25 @@ export function sortProducts(products: readonly Product[], priceOrder: PriceOrde
       const priceDifference = Number(first.price === undefined) - Number(second.price === undefined) || ((first.price ?? 0) - (second.price ?? 0)) * (priceOrder === 'asc' ? 1 : -1);
       if (priceDifference) return priceDifference;
     }
-    return second.createdAt.localeCompare(first.createdAt);
+    return 0;
   });
+}
+
+export function reorderProducts(products: Product[], id: string, targetId: string, after = false): Product[] {
+  const source = products.find(product => product.id === id);
+  const target = products.find(product => product.id === targetId);
+  if (!source || !target || id === targetId || (source.pinOrder === undefined) !== (target.pinOrder === undefined)) return products;
+  const pinned = source.pinOrder !== undefined;
+  const group = sortProducts(products).filter(product => (product.pinOrder !== undefined) === pinned);
+  const reordered = group.filter(product => product.id !== id);
+  reordered.splice(reordered.findIndex(product => product.id === targetId) + Number(after), 0, source);
+  if (reordered.every((product, position) => product === group[position])) return products;
+  if (pinned) {
+    const orders = new Map(reordered.map((product, position) => [product.id, position + 1]));
+    return products.map(product => orders.has(product.id) ? { ...product, pinOrder: orders.get(product.id)! } : product);
+  }
+  let position = 0;
+  return products.map(product => product.pinOrder === undefined ? reordered[position++] : product);
 }
 
 function filterValue(value: unknown): string { return typeof value === 'string' ? value.trim() : ''; }

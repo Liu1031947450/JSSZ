@@ -297,13 +297,17 @@ export async function checkPhotoWall(page) {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     }
     assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('.wall-filters select')].map(select => select.id)), ['wall-category', 'wall-material', 'wall-sort']);
-    assert.deepEqual(await page.evaluate(() => [...document.querySelector('#wall-sort').options].filter(option => !option.hidden).map(option => option.textContent)), ['价格从低到高', '价格从高到低']);
+    assert.deepEqual(await page.evaluate(() => [...document.querySelector('#wall-sort').options].filter(option => !option.hidden).map(option => option.textContent)), ['默认排序', '价格从低到高', '价格从高到低']);
     await page.selectOption('#wall-sort', 'asc');
     await checkVisible(['布局验收 2', '布局验收 4', '布局验收 1', '布局验收 3']);
     assert.equal(await page.evaluate(() => document.querySelector('.filter-all').getAttribute('aria-pressed')), 'false');
     assert.equal(await page.evaluate(() => document.querySelector('.filter-summary').textContent.includes('价格从低到高')), true);
     await page.selectOption('#wall-category', '项链');
     await checkVisible(['布局验收 4', '布局验收 1']);
+    await page.selectOption('#wall-sort', '');
+    assert.equal(await page.evaluate(() => document.querySelector('#wall-category').value), '项链');
+    await checkVisible(['布局验收 1', '布局验收 4']);
+    await page.selectOption('#wall-sort', 'asc');
     await page.selectOption('#wall-material', '925银');
     await checkVisible(['布局验收 1']);
     await page.selectOption('#wall-category', '手链');

@@ -4,11 +4,33 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 async function discardEditor(page) {
+  if (await page.evaluate(() => Boolean(document.querySelector('.resume-editor')))) await page.click('.resume-editor');
   if (!await page.evaluate(() => Boolean(document.querySelector('.editor-modal')))) return;
   await page.click('.editor-actions button:first-child');
   await page.click('.confirmation-modal .animal-modal-footer button:last-child');
   await page.waitForSelector('.editor-modal', { state: 'hidden' });
   await page.waitForSelector('.save-status.saved');
+}
+
+async function parkEditor(page) {
+  if (!await page.evaluate(() => Boolean(document.querySelector('.editor-modal')))) return;
+  const name = await page.evaluate(() => document.querySelector('#work-name').value);
+  await page.evaluate(() => {
+    const original = IDBObjectStore.prototype.put;
+    window.__restoreParkPut = () => { IDBObjectStore.prototype.put = original; delete window.__restoreParkPut; };
+    IDBObjectStore.prototype.put = function (...args) {
+      if (this.name === 'drafts') throw new DOMException('Test quota failure', 'QuotaExceededError');
+      return original.apply(this, args);
+    };
+  });
+  try {
+    await page.fill('#work-name', `${name} `);
+    await page.fill('#work-name', name);
+    await page.waitForSelector('.editor-modal .save-status.error');
+  } finally { await page.evaluate(() => window.__restoreParkPut()); }
+  await page.click('.editor-return');
+  await page.waitForSelector('.editor-modal', { state: 'hidden' });
+  await page.waitForSelector('.resume-editor');
 }
 
 export async function checkBackupImport(page) {
@@ -23,14 +45,17 @@ export async function checkBackupImport(page) {
     await page.waitForSelector('.save-status.saved');
   }
   async function selectBackup(filename) {
-    const selector = await page.evaluate(() => document.querySelector('.editor-modal') ? '.editor-draft-actions button:last-child' : '.draft-actions button:nth-child(2)');
+    await parkEditor(page);
     const chooserEvent = page.waitForFileChooser({ timeout: 10_000 });
-    await page.click(selector);
+    await page.click('.draft-actions button:nth-child(2)');
     await (await chooserEvent).setFiles(filename);
     await page.waitForFunction(() => document.querySelector('.confirmation-modal .animal-modal-title')?.textContent.includes('导入备份并覆盖'));
   }
   async function checkOriginalEditor() {
+    await page.click('.resume-editor');
+    await page.waitForSelector('#work-name');
     assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-name')?.value, document.querySelector('#work-price')?.value]), ['导入前保留内容', '77']);
+    await parkEditor(page);
   }
   await page.goto(`${origin}/#/admin`, { waitUntil: 'domcontentloaded' });
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -57,25 +82,27 @@ export async function checkBackupImport(page) {
     await page.fill('#work-name', '导入前保留内容');
     await page.fill('#work-price', '77');
     await page.waitForSelector('.save-status.saved');
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('.editor-draft-actions, #editor-backup-help'))), false);
+    await parkEditor(page);
     const editingDownload = page.waitForEvent('download', { timeout: 30_000 });
-    await page.click('.editor-draft-actions button:first-child');
+    await page.click('.draft-actions button:first-child');
     const unfinishedFile = join(directory, 'unfinished-backup.json');
     await (await editingDownload).saveAs(unfinishedFile);
-    assert.equal(JSON.parse(await readFile(unfinishedFile, 'utf8')).editing.name, '导入前保留内容', '弹窗内可备份尚未完成的编辑');
+    assert.equal(JSON.parse(await readFile(unfinishedFile, 'utf8')).editing.name, '导入前保留内容', '收起编辑器后可备份尚未完成的编辑');
     await selectBackup(editingFile);
     await page.click('.animal-modal-footer button:first-child');
     await page.waitForSelector('.confirmation-modal', { state: 'hidden' });
     await checkOriginalEditor();
-    await page.waitForFunction(() => document.querySelector('.editor-modal').contains(document.activeElement));
+    await page.waitForFunction(() => document.activeElement === document.querySelector('.resume-editor'));
     const invalidFile = join(directory, 'invalid.json');
     await writeFile(invalidFile, '{broken');
     await page.setInputFiles('input[aria-label="选择草稿备份文件"]', [invalidFile]);
-    await page.waitForFunction(() => document.querySelector('.editor-modal .notice.error')?.textContent.includes('备份未导入'));
+    await page.waitForFunction(() => [...document.querySelectorAll('.notice.error')].some(notice => notice.textContent.includes('备份未导入')));
     await checkOriginalEditor();
     await selectBackup(editingFile);
     await fetch(`${origin}/__test/control`, { method: 'POST', body: JSON.stringify({ failure: 403 }) });
     await page.click('.animal-modal-footer button:last-child');
-    await page.waitForFunction(() => document.querySelector('.editor-modal .notice.error')?.textContent.includes('导入失败'));
+    await page.waitForFunction(() => [...document.querySelectorAll('.notice.error')].some(notice => notice.textContent.includes('导入失败')));
     await checkOriginalEditor();
     await selectBackup(editingFile);
     await page.evaluate(() => {
@@ -88,11 +115,14 @@ export async function checkBackupImport(page) {
     });
     try {
       await page.click('.animal-modal-footer button:last-child');
-      await page.waitForFunction(() => document.querySelector('.editor-modal .notice.error')?.textContent.includes('导入失败'));
-      await checkOriginalEditor();
+      await page.waitForFunction(() => [...document.querySelectorAll('.notice.error')].some(notice => notice.textContent.includes('导入失败')));
     } finally { await page.evaluate(() => window.__restoreBackupPut()); }
+    await checkOriginalEditor();
+    await page.click('.notice.error button:not([aria-label]):first-of-type');
+    await page.waitForSelector('.save-status.saved');
     await page.reload({ waitUntil: 'domcontentloaded' });
     await login();
+    await parkEditor(page);
     await checkOriginalEditor();
     await page.cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: true });
     await selectBackup(editingFile);
@@ -193,7 +223,7 @@ export async function checkWorkspaceModal(page) {
     await page.waitForSelector('.editor-modal .save-status.error');
     assert.equal(await page.evaluate(() => document.querySelector('.editor-modal [role="alert"]').textContent.includes('重试保存')), true);
   } finally { await page.evaluate(() => window.__restoreEditorPut()); }
-  await page.click('.editor-modal .notice.error button');
+  await page.click('.editor-modal .notice.error button:first-of-type');
   await page.waitForSelector('.editor-modal .save-status.saved');
   await page.click('.editor-actions button[type="submit"]');
   await page.waitForSelector('.editor-modal', { state: 'hidden' });
@@ -242,9 +272,9 @@ export async function checkProductPins(page, visitor) {
   const baseline = await state();
   const products = baseline.catalog.products;
   assert.ok(products.length >= 4 && products.every(product => product.pinOrder === undefined), '请先生成未置顶的隔离作品');
-  const originalOrder = [...products].sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+  const originalOrder = products;
   const visibleNames = () => visitor.evaluate(() => [...document.querySelectorAll('.photo-caption-heading h3')].map(heading => heading.textContent));
-  const pinButton = position => `.work-row:nth-child(${position + 1}) .work-pin-button`;
+  const pinButton = position => `[data-work-id="${products[position].id}"] .work-pin-button`;
   async function login() {
     await page.waitForSelector('#github-token');
     await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
@@ -273,7 +303,7 @@ export async function checkProductPins(page, visitor) {
   assert.deepEqual((await state()).catalog, baseline.catalog, '置顶只能修改本机，不能自动发布');
   assert.deepEqual(await visibleNames(), originalOrder.map(product => product.name));
   assert.equal(await page.evaluate(() => document.querySelectorAll('.work-pin-button[aria-pressed="true"]').length), 3);
-  await page.click('.work-row:nth-child(3) .work-row-copy button:first-child');
+  await page.click(`[data-work-id="${products[2].id}"] .work-row-copy button:first-child`);
   await page.click('.editor-actions button[type="submit"]');
   await page.waitForSelector('.editor-modal', { state: 'hidden' });
   await page.waitForSelector('.save-status.saved');
@@ -434,6 +464,84 @@ export async function checkNewWorkSync(page) {
   console.log('新增前自动核对、重复点击、成功提示、保留草稿、限流/权限/存储失败和远端冲突验收通过');
 }
 
+export async function checkUploadZone(page, origin = 'http://127.0.0.1:4174') {
+  const baseline = await (await fetch(`${origin}/__test/state`)).json();
+  await page.goto(`${origin}/#/admin`); await page.reload();
+  await page.waitForSelector('#github-token');
+  await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
+  await page.click('.login-card button[type="submit"]');
+  await page.waitForSelector('.save-status.saved');
+  await discardEditor(page);
+  await page.click('.draft-actions button:last-child');
+  await page.click('.confirmation-modal .animal-modal-footer button:last-child');
+  await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
+  await page.waitForSelector('.save-status.saved');
+  const directory = await mkdtemp(join(tmpdir(), 'jianshi-upload-zone-'));
+  try {
+    const image = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 80; canvas.height = 80; return canvas.toDataURL('image/png').split(',')[1]; });
+    const filename = join(directory, 'upload.png');
+    await writeFile(filename, Buffer.from(image, 'base64'));
+    for (const width of [1440, 390]) {
+      await page.cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 800 });
+      await page.click('.works-list .section-heading button');
+      await page.waitForSelector('.upload-zone');
+      const name = `上传区域验收 ${width}`;
+      await page.fill('#work-name', name); await page.fill('#work-price', '12.30');
+      for (const mode of ['新增', '编辑']) {
+        await page.evaluate(() => { window.__uploadClicks = 0; document.querySelector('input[aria-label="选择作品照片"]').addEventListener('click', () => window.__uploadClicks++); });
+        for (const [position, action] of ['空白', '图标', '文字', 'Enter', 'Space'].entries()) {
+          await page.waitForFunction(() => document.querySelector('.editor-modal').getAnimations().every(animation => animation.playState === 'finished'));
+          await page.focus('.upload-zone');
+          const chooser = page.waitForFileChooser({ timeout: 10_000 });
+          if (action === 'Enter' || action === 'Space') await page.keyboard.press(action);
+          else if (action === '空白') {
+            await page.waitForFunction(() => { const zone = document.querySelector('.upload-zone'); const bounds = zone.getBoundingClientRect(); return zone.contains(document.elementFromPoint(bounds.left + 8, bounds.top + 8)); });
+            const point = await page.evaluate(() => { const bounds = document.querySelector('.upload-zone').getBoundingClientRect(); return { x: bounds.left + 8, y: bounds.top + 8 }; });
+            await page.mouse.click(point.x, point.y, { label: '点击上传区域空白处' });
+          } else await page.click(action === '图标' ? '.upload-zone svg' : '.upload-zone-label');
+          await (await chooser).setFiles(filename);
+          await page.waitForSelector('.crop-modal .animal-modal-footer button:last-child:not([disabled])');
+          assert.equal(await page.evaluate(() => window.__uploadClicks), position + 1, `${width}px ${mode}点击${action}只打开一次文件选择`);
+          await page.evaluate(() => document.querySelector('.upload-zone').click());
+          assert.equal(await page.evaluate(() => window.__uploadClicks), position + 1, '裁剪期间禁用上传区域');
+          const accept = mode === '新增' && action === 'Space';
+          await page.click(`.crop-modal .animal-modal-footer button:${accept ? 'last' : 'first'}-child`);
+          await page.waitForSelector('.crop-modal', { state: 'hidden' });
+          assert.deepEqual(await page.evaluate(() => [document.querySelector('#work-name').value, document.querySelector('#work-price').value]), [name, '12.30']);
+        }
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && !document.querySelector('.upload-zone button')), true);
+        if (mode === '编辑' && width === 1440) {
+          for (const count of [2, 1]) {
+            await page.evaluate(({ image, count }) => {
+              const transfer = new DataTransfer();
+              for (let index = 0; index < count; index++) transfer.items.add(new File([Uint8Array.from(atob(image), character => character.charCodeAt(0))], `drop-${index}.png`, { type: 'image/png' }));
+              document.querySelector('.upload-zone').dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+            }, { image, count });
+            if (count === 2) await page.waitForFunction(() => document.querySelector('.editor-modal [role="alert"]')?.textContent.includes('每次添加一张照片'));
+            else {
+              await page.waitForSelector('.crop-modal .animal-modal-footer button:last-child:not([disabled])');
+              await page.click('.crop-modal .animal-modal-footer button:first-child');
+              await page.waitForSelector('.crop-modal', { state: 'hidden' });
+            }
+          }
+        }
+        await page.click('.editor-actions button[type="submit"]');
+        await page.waitForSelector('.editor-modal', { state: 'hidden' });
+        await page.waitForSelector('.save-status.saved');
+        if (mode === '新增') {
+          const id = await page.evaluate(name => [...document.querySelectorAll('[data-work-id]')].find(card => card.querySelector('h3').textContent === name).dataset.workId, name);
+          await page.click(`[data-work-id="${id}"] .work-row-copy button:first-child`);
+          await page.waitForSelector('.upload-zone');
+          await page.fill('#work-price', '12.30');
+        }
+      }
+    }
+    assert.equal((await (await fetch(`${origin}/__test/state`)).json()).head, baseline.head, '选图和本地保存不能发布');
+    assert.deepEqual(await page.evaluate(() => window.__pageErrors), []);
+    console.log('新增/编辑：整区空白、图标、文字、Enter/空格选图，单次触发、裁剪返回、禁用、拖放及手机布局验收通过');
+  } finally { await rm(directory, { recursive: true, force: true }); }
+}
+
 export async function checkCatalogEditor(page, visitor) {
   const origin = 'http://127.0.0.1:4174';
   async function checkEditorOptions(products) {
@@ -476,7 +584,7 @@ export async function checkCatalogEditor(page, visitor) {
   await page.click('.animal-modal-footer button:last-child');
   await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
   await page.waitForSelector('.save-status.saved');
-  await page.click('.work-row button >> nth=0');
+  await page.click('.work-row-copy button >> nth=0');
   await checkEditorOptions(state.catalog.products);
   await page.fill('#work-category', '手链');
   await page.fill('#work-material', '珍珠');
@@ -548,7 +656,7 @@ export async function checkCatalogEditor(page, visitor) {
   const published = (await (await fetch(`${origin}/__test/state`)).json()).catalog;
   assert.equal(published.products.find((product) => product.name === '分类更新验收').price, 0);
 
-  await page.click('.work-row button >> nth=2');
+  await page.click('.work-row-copy button >> nth=2');
   await page.click('.animal-modal-footer button:last-child');
   await publish();
   await visitor.waitForFunction(() => document.querySelector('#wall-category').value === '' && document.querySelector('#wall-material').value === '');

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
-import { acknowledgePublication, DETAIL_BYTES, filterProducts, formatBytes, formatPrice, getFilterOptions, imagePaths, isImagePath, MAX_FILE_BYTES, newProduct, parseCatalog, parsePrice, sortProducts, toggleProductPin, usedBytes, validateFileHeader } from '../src/catalog.ts';
+import { acknowledgePublication, DETAIL_BYTES, filterProducts, formatBytes, formatPrice, getFilterOptions, imagePaths, isImagePath, MAX_FILE_BYTES, newProduct, parseCatalog, parsePrice, reorderProducts, sortProducts, toggleProductPin, usedBytes, validateFileHeader } from '../src/catalog.ts';
 import type { Catalog, Draft, Product } from '../src/catalog.ts';
 import { authenticate, encodeBase64, fetchPublishedCatalog, GitHubError, publishCatalog, readBackupImage, readSnapshot, repositoryPath } from '../src/github.ts';
 import type { Snapshot } from '../src/github.ts';
@@ -125,12 +125,12 @@ test('置顶顺序兼容旧作品，并拒绝无效类型、非正整数和溢�
   }
 });
 
-test('多个作品按置顶先后排序，取消后恢复时间排序，再次置顶排在队尾', () => {
+test('多个作品按置顶先后排序，取消后恢复普通位置，再次置顶排在队尾', () => {
   const products = Array.from({ length: 4 }, (_, position) => ({ ...product(), id: crypto.randomUUID(), name: `作品 ${position}`, createdAt: `2026-09-${16 + position}T00:00:00.000Z` }));
   const original = structuredClone(products);
   const ids = (items: Product[]) => sortProducts(items).map(item => item.id);
   const first = products[0]; const second = products[1]; const third = products[2]; const fourth = products[3];
-  assert.deepEqual(ids(products), [fourth.id, third.id, second.id, first.id]);
+  assert.deepEqual(ids(products), [first.id, second.id, third.id, fourth.id]);
   let pinned = toggleProductPin(products, second.id);
   pinned = toggleProductPin(pinned, first.id);
   pinned = toggleProductPin(pinned, third.id);
@@ -138,7 +138,7 @@ test('多个作品按置顶先后排序，取消后恢复时间排序，再次�
   assert.deepEqual(ids(pinned), [second.id, first.id, third.id, fourth.id]);
   assert.deepEqual(filterProducts(sortProducts(pinned), '编织').map(item => item.id), ids(pinned));
   pinned = toggleProductPin(pinned, second.id);
-  assert.deepEqual(ids(pinned), [first.id, third.id, fourth.id, second.id]);
+  assert.deepEqual(ids(pinned), [first.id, third.id, second.id, fourth.id]);
   pinned = toggleProductPin(pinned, second.id);
   assert.equal(pinned[1].pinOrder, 4);
   assert.deepEqual(ids(pinned), [first.id, third.id, second.id, fourth.id]);
@@ -151,12 +151,12 @@ test('多个作品按置顶先后排序，取消后恢复时间排序，再次�
   assert.throws(() => toggleProductPin([{ ...first, pinOrder: Number.MAX_SAFE_INTEGER }, second], second.id), /置顶顺序/);
 });
 
-test('价格升降序按数值排列，零元有效，同价按创建时间，未标价始终在后', () => {
+test('价格升降序按数值排列，零元有效，同价按手动顺序，未标价始终在后', () => {
   const products = [12.5, undefined, 0, 2, 12.5, undefined].map((price, position) => ({ ...product(), id: crypto.randomUUID(), price, createdAt: `2026-09-${14 + position}T00:00:00.000Z` }));
   const original = structuredClone(products);
-  assert.deepEqual(sortProducts(products, 'asc'), [products[2], products[3], products[4], products[0], products[5], products[1]]);
-  assert.deepEqual(sortProducts(products, 'desc'), [products[4], products[0], products[3], products[2], products[5], products[1]]);
-  assert.deepEqual(sortProducts(products, ''), [...products].reverse());
+  assert.deepEqual(sortProducts(products, 'asc'), [products[2], products[3], products[0], products[4], products[1], products[5]]);
+  assert.deepEqual(sortProducts(products, 'desc'), [products[0], products[4], products[3], products[2], products[1], products[5]]);
+  assert.deepEqual(sortProducts(products, ''), products);
   assert.deepEqual(sortProducts([], 'asc'), []);
   assert.deepEqual(sortProducts([products[0]], 'desc'), [products[0]]);
   assert.deepEqual(products, original);
@@ -168,6 +168,44 @@ test('价格排序保留先置顶先展示，只排序未置顶作品，筛选�
   assert.deepEqual(sortProducts(pinned, 'asc'), [pinned[1], pinned[0], pinned[2], pinned[4], pinned[3]]);
   assert.deepEqual(sortProducts(pinned, 'desc'), [pinned[1], pinned[0], pinned[3], pinned[4], pinned[2]]);
   assert.deepEqual(filterProducts(sortProducts(pinned, 'desc'), '编织'), [pinned[1], pinned[3], pinned[4], pinned[2]]);
+});
+
+test('拖动普通作品只重排普通槽位，置顶组独立排序且取消置顶恢复位置', () => {
+  const products = Array.from({ length: 6 }, (_, position) => {
+    const id = crypto.randomUUID();
+    return { ...product(), id, name: `拖动 ${position}`, photos: product().photos.map(photo => ({ ...photo, src: photo.src.replace(productId, id), thumbnail: photo.thumbnail.replace(productId, id) })) };
+  });
+  const pinned = toggleProductPin(toggleProductPin(products, products[1].id), products[4].id);
+  const original = structuredClone(pinned);
+  const moved = reorderProducts(pinned, products[5].id, products[0].id);
+  assert.deepEqual(moved.map(item => item.id), [products[5], products[1], products[0], products[2], products[4], products[3]].map(item => item.id));
+  const repinned = reorderProducts(moved, products[4].id, products[1].id);
+  assert.deepEqual(sortProducts(repinned).map(item => item.id), [products[4], products[1], products[5], products[0], products[2], products[3]].map(item => item.id));
+  assert.deepEqual(repinned.map(item => item.id), moved.map(item => item.id));
+  assert.deepEqual(repinned.filter(item => item.pinOrder !== undefined).map(item => item.pinOrder), [2, 1]);
+  const unpinned = toggleProductPin(repinned, products[1].id);
+  assert.deepEqual(sortProducts(unpinned).map(item => item.id), [products[4], products[5], products[1], products[0], products[2], products[3]].map(item => item.id));
+  assert.equal(toggleProductPin(unpinned, products[1].id)[1].pinOrder, 2);
+  assert.deepEqual(pinned, original);
+  assert.deepEqual(parseCatalog(catalog(repinned)).products, repinned);
+  const added = { ...newProduct(), ...product(), id: crypto.randomUUID() };
+  assert.equal(sortProducts([added, ...repinned]).filter(item => item.pinOrder === undefined)[0].id, added.id);
+});
+
+test('拖动采用插入而非交换，拒绝跨组和无效位置，空或单件保持不变', () => {
+  const products = Array.from({ length: 4 }, () => ({ ...product(), id: crypto.randomUUID(), price: 2 }));
+  const moved = reorderProducts(products, products[0].id, products[2].id, true);
+  assert.deepEqual(moved, [products[1], products[2], products[0], products[3]]);
+  assert.deepEqual(sortProducts(moved, 'desc'), moved);
+  const pinned = toggleProductPin(products, products[0].id);
+  assert.equal(reorderProducts(pinned, products[0].id, products[1].id), pinned);
+  assert.equal(reorderProducts(products, 'missing', products[0].id), products);
+  assert.equal(reorderProducts(products, products[0].id, 'missing'), products);
+  assert.equal(reorderProducts(products, products[0].id, products[0].id), products);
+  assert.equal(reorderProducts(products, products[0].id, products[1].id), products);
+  assert.deepEqual(reorderProducts([], 'missing', 'missing'), []);
+  const single = [products[0]];
+  assert.equal(reorderProducts(single, single[0].id, single[0].id), single);
 });
 
 test('清单拒绝缺失名称、超限字段、未知版本和重复作品', () => {
