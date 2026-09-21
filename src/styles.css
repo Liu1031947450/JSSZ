@@ -71,6 +71,9 @@ input, textarea, select { max-width: 100%; }
 .hero-label { position: absolute; right: 5%; top: 50%; display: flex; align-items: center; flex-direction: column; gap: 6px; width: 97px; min-height: 116px; padding: 13px 5px 9px; background: #f0eee1; color: #918469; border: 1px dashed #c4baa0; border-radius: 6px; transform: translateY(-50%) rotate(9deg); outline: 5px solid #f0eee1; }
 .hero-label > span { font-size: 14px; line-height: 1.6; letter-spacing: 3px; }
 .hero-label > small { font-size: 6px; letter-spacing: .7px; }
+.home-disclaimer { display: flex; align-items: baseline; gap: 8px 16px; margin-bottom: 22px; padding: 12px 0; border-block: 1px solid var(--animal-border-color); line-height: 1.8; letter-spacing: 0; }
+.home-disclaimer strong { flex-shrink: 0; font-size: 14px; color: var(--animal-text-color-body); }
+.home-disclaimer p { min-width: 0; font-size: 13px; color: var(--animal-text-color-body); overflow-wrap: anywhere; }
 .wall-section { scroll-margin-top: 25px; }
 .wall-topline, .wall-topline > div { display: flex; align-items: center; }
 .wall-topline { justify-content: space-between; gap: 14px; margin: 0 5px 18px; }
@@ -182,6 +185,13 @@ body:has(.animal-modal-overlay, dialog[open]) .floating-contacts { visibility: h
 .error { color: #955854; background: #fff3ed; border-color: #edcfc5; }.warning { color: #8a713e; background: #fcf7e8; border-color: #e7d8b5; }.success { color: #587147; background: #edf4e6; }.info { color: #65774f; background: #eff3e7; }
 .muted, .field-help { color: var(--muted); }
 .image-failed { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 13px; min-height: 160px; padding: 22px; font-size: 12px; background: #edf0e3; color: #7c866c; }
+.disclaimer-modal { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); }
+.disclaimer-modal .animal-modal-clipped { min-height: 0; max-height: inherit; padding: 24px; border-radius: var(--animal-radius-lg); clip-path: none !important; }
+.disclaimer-modal .animal-modal-header, .disclaimer-modal .animal-modal-footer { flex-shrink: 0; }
+.disclaimer-modal .animal-modal-title { width: 100%; font-size: 22px; letter-spacing: 0; text-align: center; }
+.disclaimer-modal .animal-modal-body { min-height: 0; align-items: stretch; color: var(--animal-text-color-body); font-size: 16px; font-weight: 400; line-height: 1.9; overflow-wrap: anywhere; overscroll-behavior: contain; }
+.disclaimer-modal .animal-modal-footer { justify-content: center; }
+.disclaimer-modal .animal-modal-footer button { min-width: 144px; max-width: 100%; }
 .detail-modal { max-width: calc(100vw - 28px); max-height: calc(100dvh - 32px); animation: modal-enter .2s ease both; }
 .detail-modal .animal-modal-clipped, .crop-modal .animal-modal-clipped { min-height: 0; padding: 25px; border-radius: var(--animal-radius-lg); clip-path: none !important; }
 .detail-modal .animal-modal-title { width: 100%; text-align: center; overflow-wrap: anywhere; }
@@ -356,6 +366,7 @@ textarea::placeholder { color: #999d8a; }
   .login-layout { gap: 16px; }.login-card { padding: 24px; }.login-note { padding: 16px; }.login-note h3 { font-size: 23px; }.detail-layout { grid-template-columns: minmax(0, 1fr); max-width: 560px; gap: 13px; text-align: center; }.detail-copy { padding-top: 0; }.detail-copy .eyebrow { margin-bottom: 11px; }.detail-copy h3 { margin-top: 12px; }.detail-copy dl { justify-content: center; }.detail-signature { margin-top: 18px; justify-content: center; }
 }
 @media (max-width: 600px) {
+  .home-disclaimer { flex-direction: column; gap: 4px; }
   .wall-filters { grid-template-columns: auto minmax(0, 1fr); gap: 8px; }.filter-all { grid-row: span 3; align-self: center; padding-inline: 12px; }.filter-field select { padding-inline: 7px; }
   .site-shell { padding-inline: 20px; }.site-header { min-height: 83px; gap: 14px; }.brand { font-size: 17px; gap: 9px; letter-spacing: 2px; }.brand-mark { width: 52px; height: 52px; border-radius: 13px; }.brand small { font-size: 6px; letter-spacing: 1.2px; }.site-header nav { gap: 18px; font-size: 11px; }
   .hero-flower, .hero-label { display: none; }.hero-eyebrow { font-size: 7px; letter-spacing: 1.9px; }.hero h1 { letter-spacing: 5px; }.title-spark { right: -28px; font-size: 20px; }.hero-copy > p { font-size: 13px; }.hero-subtitle { font-size: 9px; letter-spacing: .7px; }

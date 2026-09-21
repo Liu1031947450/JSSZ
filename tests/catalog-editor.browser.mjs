@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { acceptDisclaimer } from './disclaimer.browser.mjs';
 
 async function discardEditor(page) {
   if (await page.evaluate(() => Boolean(document.querySelector('.resume-editor')))) await page.click('.resume-editor');
@@ -39,6 +40,7 @@ export async function checkBackupImport(page) {
   const baseline = await state();
   assert.ok(baseline.catalog.products.length, '请先运行公告墙和编辑器验收，生成隔离作品与图片');
   async function login() {
+    await acceptDisclaimer(page);
     await page.waitForSelector('#github-token');
     await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
     await page.click('.login-card button[type="submit"]');
@@ -168,6 +170,7 @@ export async function checkWorkspaceModal(page) {
   }
   await page.goto(`${origin}/#/admin`);
   await page.reload();
+  await acceptDisclaimer(page);
   await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
   await page.click('.login-card button[type="submit"]');
   await page.waitForSelector('.save-status.saved');
@@ -276,6 +279,7 @@ export async function checkProductPins(page, visitor) {
   const visibleNames = () => visitor.evaluate(() => [...document.querySelectorAll('.photo-caption-heading h3')].map(heading => heading.textContent));
   const pinButton = position => `[data-work-id="${products[position].id}"] .work-pin-button`;
   async function login() {
+    await acceptDisclaimer(page);
     await page.waitForSelector('#github-token');
     await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
     await page.click('.login-card button[type="submit"]');
@@ -286,6 +290,7 @@ export async function checkProductPins(page, visitor) {
     await page.click('.publish-panel > button');
     await page.waitForFunction(() => document.querySelector('.notice.success')?.textContent.includes('网站已更新'));
     await visitor.reload();
+    await acceptDisclaimer(visitor);
     await visitor.waitForSelector('.photo-grid');
   }
   await page.goto(`${origin}/#/admin`);
@@ -297,6 +302,7 @@ export async function checkProductPins(page, visitor) {
   await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
   await page.waitForSelector('.save-status.saved');
   await visitor.goto(origin);
+  await acceptDisclaimer(visitor);
   await visitor.waitForSelector('.photo-grid');
   for (const position of [2, 0, 1]) await page.click(pinButton(position));
   await page.waitForSelector('.save-status.saved');
@@ -368,6 +374,7 @@ export async function checkNewWorkSync(page) {
   const names = () => page.evaluate(() => [...document.querySelectorAll('.work-row h3')].map(heading => heading.textContent));
   await page.goto(`${origin}/#/admin`);
   await page.reload();
+  await acceptDisclaimer(page);
   await page.waitForSelector('#github-token');
   await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
   await page.click('.login-card button[type="submit"]');
@@ -467,6 +474,7 @@ export async function checkNewWorkSync(page) {
 export async function checkUploadZone(page, origin = 'http://127.0.0.1:4174') {
   const baseline = await (await fetch(`${origin}/__test/state`)).json();
   await page.goto(`${origin}/#/admin`); await page.reload();
+  await acceptDisclaimer(page);
   await page.waitForSelector('#github-token');
   await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
   await page.click('.login-card button[type="submit"]');
@@ -557,6 +565,7 @@ export async function checkCatalogEditor(page, visitor) {
     }
   }
   async function login() {
+    await acceptDisclaimer(page);
     await page.waitForSelector('#github-token');
     await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
     await page.click('.login-card button[type="submit"]');
@@ -572,6 +581,7 @@ export async function checkCatalogEditor(page, visitor) {
   const state = await (await fetch(`${origin}/__test/state`)).json();
   assert.equal(state.catalog.products.length, 4, '请先运行 checkPhotoWall 创建隔离测试作品');
   await visitor.goto(origin);
+  await acceptDisclaimer(visitor);
   await visitor.waitForSelector('#wall-category');
   await visitor.selectOption('#wall-category', '项链');
   await visitor.selectOption('#wall-material', '925银');

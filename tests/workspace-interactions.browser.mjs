@@ -3,6 +3,7 @@ import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { acceptDisclaimer } from './disclaimer.browser.mjs';
 
 export async function checkWorkspaceInteractions(page, visitor, origin = 'http://127.0.0.1:4174') {
   const state = async () => (await fetch(`${origin}/__test/state`)).json();
@@ -18,6 +19,7 @@ export async function checkWorkspaceInteractions(page, visitor, origin = 'http:/
     await page.cdp('Emulation.setTouchEmulationEnabled', { enabled: false });
   }
   async function login() {
+    await acceptDisclaimer(page);
     await page.waitForSelector('#github-token');
     await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
     await page.click('.login-card button[type="submit"]');
@@ -107,7 +109,7 @@ export async function checkWorkspaceInteractions(page, visitor, origin = 'http:/
     await importBackup(orderedFile);
     await page.click('.publish-panel > button');
     await page.waitForFunction(() => document.querySelector('.notice.success')?.textContent.includes('网站已更新'));
-    await visitor.goto(origin); await visitor.waitForSelector('.photo-grid');
+    await visitor.goto(origin); await acceptDisclaimer(visitor); await visitor.waitForSelector('.photo-grid');
     const visible = () => visitor.evaluate(() => [...document.querySelectorAll('.photo-caption-heading h3')].map(heading => heading.textContent));
     assert.deepEqual(await visible(), [products[3], products[0], products[2], products[1]].map(product => product.name));
     await visitor.selectOption('#wall-sort', 'asc');

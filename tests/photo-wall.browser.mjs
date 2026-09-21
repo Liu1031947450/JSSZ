@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { acceptDisclaimer } from './disclaimer.browser.mjs';
 
 export async function checkDetailHistory(page, origin = 'http://127.0.0.1:4174') {
   await page.goto(origin);
+  await acceptDisclaimer(page);
   await page.waitForSelector('.photo-open');
   await page.cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await page.evaluate(() => {
@@ -76,6 +78,7 @@ export async function checkHeroLayout(page) {
 
 export async function checkFloatingContacts(page) {
   await page.goto('http://127.0.0.1:4174', { waitUntil: 'domcontentloaded' });
+  await acceptDisclaimer(page);
   await page.waitForSelector('.photo-grid');
   for (const width of [320, 390, 768, 800, 801, 1440]) {
     await page.cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width <= 600 });
@@ -256,6 +259,7 @@ export async function checkPhotoWall(page) {
   const commit = await request('/__github/git/commits', { tree: tree.sha, parents: [state.head] });
   await request('/__github/git/refs/heads/main', { sha: commit.sha, force: false }, 'PATCH');
   await page.reload();
+  await acceptDisclaimer(page);
   await page.waitForSelector('.photo-grid');
   console.log(await page.snapshot({ scope: 'full_page' }));
   for (const width of [320, 390, 600, 601, 768, 1024, 1440]) {

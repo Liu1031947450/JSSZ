@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { acceptDisclaimer } from './disclaimer.browser.mjs';
 
 export async function checkImageEditor(page, origin = 'http://127.0.0.1:4174') {
   await page.goto(`${origin}/#/admin`);
   await page.reload();
+  await acceptDisclaimer(page);
   await page.waitForSelector('#github-token');
   await page.fill('#github-token', 'github_pat_test_only_not_a_real_token');
   await page.click('.login-card button[type="submit"]');
