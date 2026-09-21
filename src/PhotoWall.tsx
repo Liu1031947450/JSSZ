@@ -8,17 +8,20 @@ import type { Photo, PriceOrder, Product } from './catalog';
 import { filterProducts, formatPrice, getFilterOptions, sortProducts } from './catalog';
 import { assetUrl } from './config';
 
-export function PhotoImage({ photo, detail = false, source, retry = true }: { photo: Photo; detail?: boolean; source?: string; retry?: boolean }) {
+export function PhotoImage({ photo, detail = false, source, retry = true, onRetry }: { photo: Photo; detail?: boolean; source?: string; retry?: boolean; onRetry?: () => void }) {
   const [failed, setFailed] = useState(false);
   const path = source || assetUrl(detail ? photo.src : photo.thumbnail);
   useEffect(() => setFailed(false), [path]);
-  return failed ? <span className="image-failed"><span role="img" aria-label={`${photo.alt}（图片暂时无法加载）`}><Icon icon={Image} size={30} /></span><span>照片暂时走丢了</span>{retry && <Button size="small" onClick={() => setFailed(false)}>重试图片</Button>}</span> : <img src={path} alt={photo.alt} width={photo.width} height={photo.height} style={detail ? undefined : { aspectRatio: Math.max(0.7, Math.min(1.4, photo.width / photo.height)), objectFit: 'cover' }} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+  return failed ? <span className="image-failed"><span role="img" aria-label={`${photo.alt}（图片暂时无法加载）`}><Icon icon={Image} size={30} /></span><span>照片暂时走丢了</span>{retry && <Button size="small" onClick={() => { setFailed(false); onRetry?.(); }}>重试图片</Button>}</span> : <img src={path} alt={photo.alt} width={photo.width} height={photo.height} style={detail ? undefined : { aspectRatio: Math.max(0.7, Math.min(1.4, photo.width / photo.height)), objectFit: 'cover' }} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
 }
 
 export function ProductDetail({ product, onClose, sources = {} }: { product: Product; onClose: () => void; sources?: Record<string, string> }) {
   const [index, setIndex] = useState(0);
   const [closing, setClosing] = useState(false);
+  const [imagesFailed, setImagesFailed] = useState(false);
+  const [imageAttempt, setImageAttempt] = useState(0);
   const [historyId] = useState(() => crypto.randomUUID());
+  const gallery = useRef<HTMLDivElement>(null);
   const lightbox = useRef<HTMLDialogElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -48,6 +51,12 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
       window.history.back();
     } else finishClose();
   }
+  function retryImages() {
+    const focusTarget = lightbox.current?.open ? lightbox.current.querySelector<HTMLButtonElement>('.photo-lightbox-close') : gallery.current?.querySelectorAll<HTMLButtonElement>('.detail-photo-open')[index];
+    focusTarget?.focus();
+    setImagesFailed(false);
+    setImageAttempt((count) => count + 1);
+  }
   function onLightboxKeyDown(event: React.KeyboardEvent<HTMLDialogElement>) {
     event.stopPropagation();
     if (event.key === 'Escape') { event.preventDefault(); lightbox.current?.close(); return; }
@@ -59,9 +68,10 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
   }
   return <Modal open title={product.name} width={850} typewriter={false} onClose={close} className={`detail-modal ${closing ? 'is-closing' : ''}`} footer={<div className="detail-footer"><div className="detail-actions"><Button type="primary" onClick={close} icon={<Icon icon={Leaf} size={16} />}>回到作品墙</Button><WechatButton>跳转微信咨询</WechatButton></div></div>}>
     <div className="detail-layout">
-      <div className="detail-gallery">
+      <div className="detail-gallery" ref={gallery} onErrorCapture={(event) => { if (event.target instanceof HTMLImageElement) setImagesFailed(true); }}>
+        {imagesFailed && <LoadErrorNotice onRetry={retryImages}>作品照片暂时无法加载。</LoadErrorNotice>}
         <Carousel activeIndex={index} onChange={setIndex} autoplay={false} showArrows={product.photos.length > 1} showDots={product.photos.length > 1} aria-label="作品照片">
-          {product.photos.map((photo) => <div className="detail-slide" key={photo.id}><button type="button" className="detail-photo-open" aria-label={`全屏查看：${photo.alt}`} onClick={() => lightbox.current?.showModal()}><PhotoImage photo={photo} detail source={sources[photo.src]} retry={false} /></button></div>)}
+          {product.photos.map((photo) => <div className="detail-slide" key={photo.id}><button type="button" className="detail-photo-open" aria-label={`全屏查看：${photo.alt}`} onClick={() => lightbox.current?.showModal()}><PhotoImage key={imageAttempt} photo={photo} detail source={sources[photo.src]} retry={false} /></button></div>)}
         </Carousel>
         <p className="image-caption" aria-live="polite">{String(index + 1).padStart(2, '0')} / {String(product.photos.length).padStart(2, '0')}<span>{product.photos[index]?.alt}</span></p>
         <p className="image-preview-hint"><Icon icon={Eye} size={14} /> 点击照片，全屏查看</p>
@@ -77,7 +87,7 @@ export function ProductDetail({ product, onClose, sources = {} }: { product: Pro
     </div>
     <dialog ref={lightbox} className="photo-lightbox" aria-label={`${product.name}：全屏照片`} onKeyDown={onLightboxKeyDown} onClick={(event) => { if (event.target === event.currentTarget) lightbox.current?.close(); }}>
       <div className="photo-lightbox-toolbar"><span>{index + 1} / {product.photos.length}</span><Button type="text" className="photo-lightbox-close" aria-label="关闭全屏照片" onClick={() => lightbox.current?.close()} icon={<Icon icon={X} size={22} />}>关闭</Button></div>
-      <div className="photo-lightbox-image"><PhotoImage key={product.photos[index].id} photo={product.photos[index]} detail source={sources[product.photos[index].src]} /></div>
+      <div className="photo-lightbox-image"><PhotoImage key={`${product.photos[index].id}:${imageAttempt}`} photo={product.photos[index]} detail source={sources[product.photos[index].src]} onRetry={retryImages} /></div>
       <p className="photo-lightbox-caption">{product.photos[index].alt}</p>
     </dialog>
   </Modal>;

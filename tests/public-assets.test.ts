@@ -1,6 +1,24 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
+import { runInNewContext } from 'node:vm';
+
+test('入口脚本失败时的原生备用站仅匹配两个正式域名', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const script = html.match(/<script id="startup-script">([\s\S]*?)<\/script>/)?.[1];
+  assert.ok(script);
+  for (const [hostname, expected] of [
+    ['liu1031947450.github.io', 'https://jssz.pages.dev/'],
+    ['jssz.pages.dev', 'https://liu1031947450.github.io/JSSZ/'],
+    ['localhost', ''],
+    ['other.github.io', ''],
+    ['jssz.pages.dev.example.com', ''],
+  ]) {
+    const link = { href: '', hidden: true };
+    runInNewContext(script, { location: { hostname }, document: { getElementById: () => link } });
+    assert.deepEqual(link, { href: expected, hidden: !expected }, hostname);
+  }
+});
 
 test('React 版本与 UI 内嵌的 ReactDOM 开发运行时一致', async () => {
   const runtime = await readFile(new URL('../node_modules/animal-island-ui-tailwind/dist/es/node_modules/react-dom/cjs/react-dom-client.development.js', import.meta.url), 'utf8');

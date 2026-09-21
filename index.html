@@ -11,7 +11,34 @@
     <title>简时手作 · 把日子，做成喜欢的样子</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <style>
+        #startup-fallback { position: fixed; inset: 0; display: grid; place-items: center; overflow: auto; padding: 24px; box-sizing: border-box; background: #f7f5ed; color: #526244; font: 16px/1.8 system-ui, sans-serif; }
+        #startup-fallback section { width: 100%; max-width: 440px; }
+        #startup-fallback h1 { margin: 0 0 16px; font-size: 28px; }
+        #startup-fallback p { margin: 12px 0; }
+        #startup-fallback .startup-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+        #startup-fallback button, #startup-fallback a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; box-sizing: border-box; border: 1px solid #526244; border-radius: 12px; background: #fff; color: #526244; font: inherit; text-decoration: none; cursor: pointer; }
+        #startup-fallback :focus-visible { outline: 3px solid #526244; outline-offset: 3px; }
+        #startup-fallback [hidden] { display: none; }
+      </style>
+      <main id="startup-fallback" aria-labelledby="startup-title">
+        <section>
+          <h1 id="startup-title">简时手作</h1>
+          <p role="status">正在打开网页，请稍候…</p>
+          <p>若长时间未显示，可能是网络较慢或加载失败，请检查网络后重新加载。</p>
+          <noscript><p>请先在浏览器中启用 JavaScript，再重新加载网页。</p></noscript>
+          <div class="startup-actions"><button type="button" onclick="window.location.reload()">重新加载</button><a id="startup-backup" hidden>前往备用站</a></div>
+        </section>
+      </main>
+      <script id="startup-script">
+        {
+          const backupUrl = location.hostname === 'liu1031947450.github.io' ? 'https://jssz.pages.dev/' : location.hostname === 'jssz.pages.dev' ? 'https://liu1031947450.github.io/JSSZ/' : '';
+          const backupLink = document.getElementById('startup-backup');
+          if (backupUrl) { backupLink.href = backupUrl; backupLink.hidden = false; }
+        }
+      </script>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
