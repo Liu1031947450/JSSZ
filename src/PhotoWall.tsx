@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Carousel, Icon, Tag } from 'animal-island-ui-tailwind';
 import { Eye, Flower, Heart, Image, Leaf, Pin, Sun, X } from 'lucide-react';
 import Modal from './Modal';
+import LoadErrorNotice from './LoadErrorNotice';
 import { WechatButton } from './Contact';
 import type { Photo, PriceOrder, Product } from './catalog';
 import { filterProducts, formatPrice, getFilterOptions, sortProducts } from './catalog';
@@ -86,12 +87,15 @@ export default function PhotoWall({ products }: { products: Product[] }) {
   const [selected, setSelected] = useState<Product | null>(null);
   const [filters, setFilters] = useState({ category: '', material: '' });
   const [priceOrder, setPriceOrder] = useState<PriceOrder>('');
+  const [imagesFailed, setImagesFailed] = useState(false);
+  const [imageAttempt, setImageAttempt] = useState(0);
   const options = useMemo(() => getFilterOptions(products), [products]);
   const ordered = useMemo(() => sortProducts(products, priceOrder), [products, priceOrder]);
   const category = options.categories.includes(filters.category) ? filters.category : '';
   const material = options.materials.includes(filters.material) ? filters.material : '';
   const filtered = Boolean(category || material);
   const visible = useMemo(() => filterProducts(ordered, category, material), [ordered, category, material]);
+  useEffect(() => setImagesFailed(false), [category, material]);
   const clearFilters = () => { setFilters({ category: '', material: '' }); setPriceOrder(''); };
   return <>
     <section className="wall-section" id="works" aria-labelledby="wall-title">
@@ -103,9 +107,10 @@ export default function PhotoWall({ products }: { products: Product[] }) {
         <label className={`filter-field ${priceOrder ? 'is-active' : ''}`} htmlFor="wall-sort">排序<select id="wall-sort" value={priceOrder} disabled={!products.length} onChange={(event) => setPriceOrder(event.target.value as PriceOrder)}><option value="">默认排序</option><option value="asc">价格从低到高</option><option value="desc">价格从高到低</option></select></label>
       </div>
       <p className="filter-summary" role="status" aria-live="polite">{filtered ? `当前：${category || '全部分类'} · ${material || '全部材质'}` : '当前：全部作品'}{priceOrder && ` · 价格从${priceOrder === 'asc' ? '低到高' : '高到低'}（置顶优先）`} · 共 {visible.length} 件</p>
+      {imagesFailed && <LoadErrorNotice onRetry={() => { setImagesFailed(false); setImageAttempt((count) => count + 1); }}>部分作品照片暂时无法加载。</LoadErrorNotice>}
       <div className={`cork-board ${products.length ? '' : 'is-empty'}`}>
         <span className="board-screw screw-left" aria-hidden="true" /><span className="board-screw screw-right" aria-hidden="true" />
-        {visible.length ? <div className="photo-grid" key={JSON.stringify([category, material])}>{visible.map((product) => <figure className="photo-memory" key={product.id}>
+        {visible.length ? <div className="photo-grid" key={JSON.stringify([category, material, imageAttempt])} onErrorCapture={(event) => { if (event.target instanceof HTMLImageElement) setImagesFailed(true); }}>{visible.map((product) => <figure className="photo-memory" key={product.id}>
           <Button type="text" className="photo-open" aria-label={`查看作品：${product.name}`} onClick={() => setSelected(product)}><PhotoImage photo={product.photos[0]} retry={false} /></Button>
           <figcaption>
             <div className="photo-caption-heading"><h3>{product.name}</h3>{product.pinOrder !== undefined && <span className="photo-pin"><Icon icon={Pin} size={12} />置顶</span>}</div>

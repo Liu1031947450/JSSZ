@@ -182,6 +182,10 @@ body:has(.animal-modal-overlay, dialog[open]) .floating-contacts { visibility: h
 .notice { display: flex; align-items: center; flex-wrap: wrap; gap: 11px; margin: 16px 0; padding: 14px 17px; border: 1px solid #d9e0ca; border-radius: 13px; font-size: 12px; line-height: 1.85; overflow-wrap: anywhere; }
 .notice > span { flex: 1; min-width: min(200px, 100%); }
 .notice small { display: block; font-size: 10px; overflow-wrap: anywhere; }
+.load-error-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.load-error-actions > button, .backup-site-link { min-height: 44px; }
+.backup-site-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--animal-border-color); border-radius: 8px; background: #fff; color: var(--animal-text-color-body); font-weight: 600; letter-spacing: 0; text-decoration: none; }
+.backup-site-link:hover { background: #f4f6ef; }
 .error { color: #955854; background: #fff3ed; border-color: #edcfc5; }.warning { color: #8a713e; background: #fcf7e8; border-color: #e7d8b5; }.success { color: #587147; background: #edf4e6; }.info { color: #65774f; background: #eff3e7; }
 .muted, .field-help { color: var(--muted); }
 .image-failed { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 13px; min-height: 160px; padding: 22px; font-size: 12px; background: #edf0e3; color: #7c866c; }

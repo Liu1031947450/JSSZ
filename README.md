@@ -6,6 +6,8 @@
 
 首页介绍下方、作品墙上方常驻显示同一声明，关闭弹窗后仍保留；提示随页面正常滚动，不遮挡作品。
 
+首页作品清单或照片加载失败时保留「重新加载」，并提供「前往备用站」：`liu1031947450.github.io` 与 `jssz.pages.dev` 互相跳转，需用户主动点击，不自动跳转。照片重试保留当前筛选和排序；本地及其他域名不显示备用站入口。
+
 ## 本地运行
 
 需要 Node.js 22.12+。
@@ -137,6 +139,8 @@ node tests/browser-server.mjs
 打开 `http://127.0.0.1:4174`，管理页仅使用假令牌 `github_pat_test_only_not_a_real_token`。可测试上传、裁剪、多图详情、刷新后重连恢复草稿、发布和删除；测试数据只存于该测试服务器内存和专用本地站点的浏览器存储，正式 `public/catalog.json` 始终不受影响。不要在此服务输入真实令牌，不要将验收服务部署到公网。
 
 `tests/disclaimer.browser.mjs` 的 `checkDisclaimer(page, origin)` 验证声明文案、首次打开、刷新与重新打开、仅同意按钮关闭、键盘焦点、背景锁定、站内切换及手机和横屏布局；默认地址为本地开发服务 `http://127.0.0.1:5173`，不登录或发布作品。其他浏览器验收通过 `acceptDisclaimer(page)` 完成进入页面时的同意步骤。
+
+`tests/site-fallback.browser.mjs` 的 `checkSiteFallback(page)` 在本地开发服务模拟清单和图片加载失败，验证双向备用地址、原站重试、筛选保留及手机布局；不修改真实作品数据。
 
 `tests/catalog-editor.browser.mjs` 的 `checkNewWorkSync(page)` 可独立验收新增前自动核对，包括每次仅核对一次、成功消息、重复点击拦截、草稿保留，以及请求失败、存储失败和远端冲突时停止新建。
 

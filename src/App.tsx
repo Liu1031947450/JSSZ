@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Button, Icon } from 'animal-island-ui-tailwind';
-import { Flower, Gift, Heart, Leaf, Wifi } from 'lucide-react';
+import { Flower, Gift, Heart, Leaf } from 'lucide-react';
 import PhotoWall from './PhotoWall';
 import Modal from './Modal';
+import LoadErrorNotice from './LoadErrorNotice';
 import ContactLinks, { FloatingContacts } from './Contact';
 import type { Catalog } from './catalog';
 import { messageOf } from './catalog';
@@ -48,7 +49,7 @@ export default function App() {
       {admin ? <Suspense fallback={<div className="page-status" role="status">正在打开手作工作台…</div>}><Admin /></Suspense> : <>
         <section className="hero" aria-labelledby="site-title"><div className="hero-flower" aria-hidden="true"><Icon icon={Flower} size={48} /><span>made with love</span></div><div className="hero-copy"><span className="eyebrow hero-eyebrow"><span /> A LITTLE JOY, MADE BY HAND <span /></span><h1 id="site-title">简时手作<span className="title-spark" aria-hidden="true">✳</span></h1><p>把日子，做成喜欢的样子。</p><span className="hero-subtitle">一些手作 · 一点灵感 · 一份认真生活的心意</span></div><div className="hero-label" aria-hidden="true"><Icon icon={Heart} size={22} /><span>慢一点<br />也很好</span><small>JUST TAKE IT SLOW</small></div></section>
         <aside className="home-disclaimer" aria-label="重要声明"><strong>重要声明</strong><p>{disclaimerText}</p></aside>
-        {error && <div className="notice error" role="alert"><Icon icon={Wifi} size={19} /><span>{catalog ? '暂时无法获取最新作品，以下为本次已加载的内容。' : '还没能读到作品清单，请稍后再试。'}<small>{error}</small></span><Button size="small" onClick={() => setReload((count) => count + 1)} disabled={loading}>重新加载</Button></div>}
+        {error && <LoadErrorNotice detail={error} loading={loading} onRetry={() => setReload((count) => count + 1)}>{catalog ? '暂时无法获取最新作品，以下为本次已加载的内容。' : '还没能读到作品清单，请稍后再试。'}</LoadErrorNotice>}
         {loading && !catalog && <div className="page-status" role="status"><Icon icon={Leaf} size={25} /><span>正在把小小的心意贴上墙…</span></div>}
         {catalog && <PhotoWall products={catalog.products} />}
         <section className="about-section" id="about" aria-labelledby="about-title"><div className="about-heading"><span className="eyebrow">LITTLE THINGS MATTER</span><h2 id="about-title">手作，是和生活的温柔对话。</h2><p>不追赶时间，不批量复制。<br className="mobile-break" />让平凡的材料，长出自己的小故事。</p></div><div className="about-values"><div><span className="value-icon sage"><Icon icon={Leaf} size={25} /></span><h3>自然的灵感</h3><p>从四季与日常里，<br />捡起一点小小的美好。</p></div><div><span className="value-icon peach"><Icon icon={Heart} size={25} /></span><h3>手心的温度</h3><p>慢慢打磨每个细节，<br />也留下手作独有的痕迹。</p></div><div><span className="value-icon butter"><Icon icon={Gift} size={25} /></span><h3>独一份心意</h3><p>珍藏那些不必完美，<br />却足够真诚的喜欢。</p></div></div></section>
