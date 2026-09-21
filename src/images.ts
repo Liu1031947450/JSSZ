@@ -9,12 +9,12 @@ export async function readImage(file: File): Promise<ImageSource> {
   let bitmap: ImageBitmap;
   try { bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
   catch { throw new Error('无法解码这张图片，文件可能损坏，请换一张试试'); }
-  if (!bitmap.width || !bitmap.height || bitmap.width * bitmap.height > MAX_PIXELS) {
-    bitmap.close(); throw new Error('图片不得超过 2400 万像素，请先缩小分辨率');
+  if (!bitmap.width || !bitmap.height) {
+    bitmap.close(); throw new Error('图片尺寸无效，请换一张试试');
   }
   try {
     let image: Blob = file;
-    if (file.size > MAX_FILE_BYTES) {
+    if (file.size > MAX_FILE_BYTES || bitmap.width * bitmap.height > MAX_PIXELS) {
       image = await compressImage(bitmap);
       bitmap.close();
       bitmap = await createImageBitmap(image);
@@ -35,8 +35,9 @@ async function compressImage(bitmap: ImageBitmap): Promise<Blob> {
   if (!context) throw new Error('此浏览器无法处理图片');
   try {
     const qualities = [1, 0.95, 0.9, 0.85, 0.8];
+    const pixelScale = Math.min(1, Math.sqrt(MAX_PIXELS / (bitmap.width * bitmap.height)));
     for (let attempt = 0; attempt < 10; attempt++) {
-      const scale = Math.min(1, 0.85 ** (attempt - qualities.length + 1));
+      const scale = pixelScale * Math.min(1, 0.85 ** (attempt - qualities.length + 1));
       canvas.width = Math.max(1, Math.floor(bitmap.width * scale));
       canvas.height = Math.max(1, Math.floor(bitmap.height * scale));
       context.imageSmoothingQuality = 'high';

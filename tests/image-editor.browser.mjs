@@ -21,8 +21,8 @@ export async function checkImageEditor(page, origin = 'http://127.0.0.1:4174') {
   async function upload(kind = 'small') {
     const size = await page.evaluate(async (kind) => {
       const canvas = document.createElement('canvas');
-      canvas.width = kind === 'large' ? 2200 : 600;
-      canvas.height = kind === 'large' ? 1800 : 400;
+      canvas.width = kind === 'pixels' ? 7200 : kind === 'large' ? 2200 : 600;
+      canvas.height = kind === 'pixels' ? 4800 : kind === 'large' ? 1800 : 400;
       const context = canvas.getContext('2d');
       if (kind === 'large') {
         const pixels = context.createImageData(canvas.width, canvas.height);
@@ -32,7 +32,7 @@ export async function checkImageEditor(page, origin = 'http://127.0.0.1:4174') {
       } else {
         for (const [index, color] of ['#f00', '#0f0', '#00f', '#ff0'].entries()) {
           context.fillStyle = color;
-          context.fillRect(index % 2 * 300, Math.floor(index / 2) * 200, 300, 200);
+          context.fillRect(index % 2 * canvas.width / 2, Math.floor(index / 2) * canvas.height / 2, canvas.width / 2, canvas.height / 2);
         }
       }
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -55,9 +55,19 @@ export async function checkImageEditor(page, origin = 'http://127.0.0.1:4174') {
   }
 
   for (const [rotation, colors] of [[0, [0, 1, 2, 3]], [90, [2, 0, 3, 1]], [180, [3, 2, 1, 0]], [270, [1, 3, 0, 2]]]) {
-    await upload();
+    const size = await upload(rotation === 0 ? 'pixels' : 'small');
     await ready();
-    assert.equal(await page.evaluate(() => Boolean(document.querySelector('.compression-result'))), false);
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('.compression-result'))), rotation === 0);
+    if (rotation === 0) {
+      assert.ok(size < 10 * 1024 * 1024);
+      const resized = await page.evaluate(async () => {
+        const image = document.querySelector('.crop-stage img');
+        const blob = await (await fetch(image.src)).blob();
+        return { width: image.naturalWidth, height: image.naturalHeight, size: blob.size };
+      });
+      assert.deepEqual([resized.width, resized.height], [6000, 4000]);
+      assert.ok(resized.size <= 10 * 1024 * 1024);
+    }
     for (let turn = 0; turn < rotation / 90; turn++) {
       await page.click('.crop-rotation button:nth-child(2)');
       await ready();
@@ -69,6 +79,10 @@ export async function checkImageEditor(page, origin = 'http://127.0.0.1:4174') {
       await ready();
       for (const [width, height] of [[390, 844], [844, 390], [1024, 520]]) {
         await page.cdp('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 800 });
+        await page.waitForFunction(() => {
+          const bounds = document.querySelector('.crop-modal .animal-modal-footer').getBoundingClientRect();
+          return bounds.top >= 0 && bounds.bottom <= innerHeight;
+        });
         const layout = await page.evaluate(() => {
           const footer = document.querySelector('.crop-modal .animal-modal-footer');
           const button = footer.querySelector('button:last-child');
@@ -137,5 +151,5 @@ export async function checkImageEditor(page, origin = 'http://127.0.0.1:4174') {
   await page.click('.confirmation-modal .animal-modal-footer button:last-child');
   await page.waitForSelector('.editor-modal', { state: 'hidden' });
   await page.waitForSelector('.save-status.saved');
-  console.log(`四方向实际像素、原比例/方形切换、短屏/手机按钮、错误格式、超限压缩和输入保留通过；原图 ${originalSize} bytes，压缩后 ${compressed.size} bytes，分辨率不变`);
+  console.log(`四方向实际像素、原比例/方形切换、短屏/手机按钮、错误格式、像素超限缩小和输入保留通过；7200x4800 自动缩至 6000x4000；仅大小超限原图 ${originalSize} bytes，压缩后 ${compressed.size} bytes，分辨率不变`);
 }

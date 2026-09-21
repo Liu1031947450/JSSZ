@@ -1,7 +1,7 @@
 import test from 'node:test';
 import type { TestContext } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_FILE_BYTES } from '../src/catalog.ts';
+import { MAX_FILE_BYTES, MAX_PIXELS } from '../src/catalog.ts';
 import { processImage, readImage } from '../src/images.ts';
 
 function file(size = 100, name = 'photo.png', type = 'image/png') {
@@ -55,6 +55,44 @@ test('10MB 以内及边界图片不额外压缩，保留原始图片供裁剪', 
   assert.equal(state.frames.length, 0);
 });
 
+test('大小和像素恰好达到上限时不压缩', async (context) => {
+  const state = browser(context, { width: 6000, height: 4000 });
+  const original = file(MAX_FILE_BYTES);
+  const source = await readImage(original);
+  assert.equal(source.width * source.height, MAX_PIXELS);
+  assert.equal(source.compressedBytes, undefined);
+  assert.equal(state.urls[0], original);
+  assert.equal(state.frames.length, 0);
+});
+
+for (const [width, height] of [[6000, 4001], [8000, 6000], [6000, 8000]]) {
+  test(`${width}x${height} 图片即使不到 10MB 也等比例缩小至像素上限以内`, async (context) => {
+    const state = browser(context, { width, height });
+    const source = await readImage(file());
+    const scale = Math.sqrt(MAX_PIXELS / (width * height));
+    assert.deepEqual([source.width, source.height], [Math.floor(width * scale), Math.floor(height * scale)]);
+    assert.ok(source.width * source.height <= MAX_PIXELS);
+    assert.ok(Math.abs(source.width / source.height - width / height) < 0.001);
+    assert.equal(state.frames.length, 1);
+    assert.equal(state.frames[0].quality, 1);
+    assert.equal(source.compressedBytes, 100);
+    assert.equal(state.bitmaps[0].closed, true);
+    assert.equal(state.bitmaps[1].closed, false);
+    assert.equal(state.urls[0].size, source.compressedBytes);
+  });
+}
+
+test('像素和大小同时超限时先缩小像素，再继续压缩至 10MB 以内', async (context) => {
+  const state = browser(context, { width: 7200, height: 4800, encode: attempt => ({ type: 'image/webp', size: attempt < 6 ? MAX_FILE_BYTES + 1 : MAX_FILE_BYTES } as Blob) });
+  const source = await readImage(file(MAX_FILE_BYTES + 1));
+  assert.ok(state.frames.every(frame => frame.width * frame.height <= MAX_PIXELS));
+  assert.ok(state.frames.slice(0, 5).every(frame => frame.width === 6000 && frame.height === 4000));
+  assert.deepEqual([source.width, source.height], [5100, 3400]);
+  assert.deepEqual(state.frames.map(frame => frame.quality), [1, 0.95, 0.9, 0.85, 0.8, 0.8]);
+  assert.equal(source.compressedBytes, MAX_FILE_BYTES);
+  assert.ok(state.frames.every(frame => frame.operations.filter(operation => operation[0] === 'drawImage').every(operation => operation[1] === state.bitmaps[0])));
+});
+
 test('超限图片从最高质量开始压缩，达到 10MB 后停止且不缩小分辨率', async (context) => {
   const state = browser(context, { encode: attempt => ({ type: 'image/webp', size: attempt < 3 ? MAX_FILE_BYTES + 1 : MAX_FILE_BYTES - 1 } as Blob) });
   const source = await readImage(file(MAX_FILE_BYTES + 1));
@@ -75,12 +113,12 @@ test('质量调整仍超限才按原图缩小尺寸，不重复缩放已压缩�
   assert.ok(state.frames.every(frame => frame.operations.filter(operation => operation[0] === 'drawImage').every(operation => operation[1] === state.bitmaps[0])));
 });
 
-test('超限压缩仍拒绝错误格式、空文件和过大像素，且释放已解码图片', async (context) => {
-  const state = browser(context, { width: 6000, height: 4001 });
+test('超限压缩仍拒绝错误格式、空文件和无效尺寸，且释放已解码图片', async (context) => {
+  const state = browser(context, { width: 0, height: 4000 });
   await assert.rejects(readImage(file(MAX_FILE_BYTES + 1, 'photo.jpg', 'image/jpeg')), /真实的 JPEG/);
   await assert.rejects(readImage(file(0)), /非空/);
   assert.equal(state.bitmaps.length, 0);
-  await assert.rejects(readImage(file(MAX_FILE_BYTES + 1)), /2400 万像素/);
+  await assert.rejects(readImage(file(MAX_FILE_BYTES + 1)), /图片尺寸无效/);
   assert.equal(state.bitmaps[0].closed, true);
   assert.equal(state.frames.length, 0);
   assert.equal(state.urls.length, 0);
