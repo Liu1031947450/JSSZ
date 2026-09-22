@@ -74,6 +74,7 @@ export async function checkExhibitionWholePage(page, origin = 'http://127.0.0.1:
     await page.goto(`${origin}/?home=3d`);
     await acceptDisclaimer(page);
     await page.waitForSelector('.exhibition-room');
+    await page.click('.exhibition-hero-motion');
     await assertNoGrid(page);
     const response = await page.fetch(`${origin}/catalog.json`);
     const catalog = typeof response.body === 'string' ? JSON.parse(response.body) : response.body;
@@ -125,9 +126,13 @@ export async function checkExhibitionWholePage(page, origin = 'http://127.0.0.1:
       for (let index = 0; index < expectedRooms.size; index += 1) {
         await page.evaluate(index => document.querySelector(`#exhibition-room-${index}`).scrollIntoView({ behavior: 'instant' }), index);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${width}px 展场 ${index} 无横向溢出`);
+        assert.ok(await page.evaluate(index => document.querySelector(`#exhibition-room-${index} .room-artwork`).clientHeight >= 300, index), `${width}px 展场 ${index} 图片区域不被 flex 压扁`);
+        await page.waitForFunction(index => { const image = document.querySelector(`#exhibition-room-${index} .room-product img`); return image?.complete && image.naturalWidth > 0; }, index);
+        assert.ok(await page.evaluate(index => { const image = document.querySelector(`#exhibition-room-${index} .room-product img`); return image.clientWidth > 100 && image.clientHeight > 100; }, index), `${width}px 展场 ${index} 高清图片实际可见`);
         assert.ok(await page.evaluate(index => [...document.querySelectorAll(`#exhibition-room-${index} .room-step-buttons button`)].every(button => button.getBoundingClientRect().height >= 44), index));
       }
     }
+    await page.click('.exhibition-motion');
     await page.evaluate(() => document.querySelector('#exhibition-room-1').scrollIntoView({ behavior: 'instant' }));
     await page.waitForFunction(() => document.querySelector('#exhibition-room-1').dataset.inView === 'true');
     const transform = await page.evaluate(() => getComputedStyle(document.querySelector('#exhibition-room-1 .room-object-position')).transform);
@@ -213,4 +218,127 @@ export async function checkExhibitionFallbacks(page, origin = 'http://127.0.0.1:
     }
   }
   console.log('模块与图片弱网重试、无 WebGL、空展厅与单件作品降级通过，未退回网格');
+}
+
+export async function checkExhibitionAutoplay(page, origin = 'http://127.0.0.1:4175') {
+  const clock = await page.cdp('Page.addScriptToEvaluateOnNewDocument', { source: `
+    const nativeTimeout = window.setTimeout;
+    const nativeClear = window.clearTimeout;
+    let timerId = 0;
+    let now = 0;
+    window.__autoplayTimers = new Map();
+    window.setTimeout = (callback, delay, ...args) => {
+      if (delay !== 3000) return nativeTimeout(callback, delay, ...args);
+      const id = --timerId;
+      window.__autoplayTimers.set(id, { callback: () => callback(...args), due: now + delay });
+      return id;
+    };
+    window.clearTimeout = id => { if (!window.__autoplayTimers.delete(id)) nativeClear(id); };
+    window.__advanceAutoplay = elapsed => {
+      now += elapsed;
+      for (const [id, timer] of [...window.__autoplayTimers]) {
+        if (timer.due <= now && window.__autoplayTimers.delete(id)) timer.callback();
+      }
+    };
+  ` });
+  const readIndex = selector => page.evaluate(selector => Number(document.querySelector(`${selector} input`).value), selector);
+  const tick = elapsed => page.evaluate(elapsed => window.__advanceAutoplay(elapsed), elapsed);
+  async function releaseInteraction() {
+    await page.mouse.move(2, 2);
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.waitForFunction(() => window.__autoplayTimers.size > 0);
+  }
+  try {
+    await page.cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
+    await page.cdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
+    await page.goto(`${origin}/?home=3d`);
+    await page.waitForSelector('.exhibition-current');
+    assert.equal(await page.evaluate(() => window.__autoplayTimers.size), 0, '声明未同意时不自动切换');
+    await acceptDisclaimer(page);
+    await releaseInteraction();
+    await tick(2999);
+    assert.match(await page.evaluate(() => document.querySelector('.exhibition-current small').textContent), /01/);
+    await tick(1);
+    await page.waitForFunction(() => document.querySelector('.exhibition-current small').textContent.includes('02'));
+
+    const roomCount = await page.evaluate(() => document.querySelectorAll('.exhibition-room').length);
+    for (let index = 0; index < roomCount; index += 1) {
+      const selector = `#exhibition-room-${index}`;
+      await page.evaluate(selector => document.querySelector(selector).scrollIntoView({ behavior: 'instant', block: 'center' }), selector);
+      await releaseInteraction();
+      const total = await page.evaluate(selector => Number(document.querySelector(selector).dataset.roomTotal), selector);
+      for (let turn = 0; turn < total; turn += 1) {
+        await page.waitForFunction(() => window.__autoplayTimers.size > 0);
+        const before = await readIndex(selector);
+        await tick(3000);
+        await page.waitForFunction(({ selector, expected }) => Number(document.querySelector(`${selector} input`).value) === expected, { selector, expected: (before + 1) % total });
+        assert.equal(await page.evaluate(selector => document.querySelector(`${selector} [role="status"]`).getAttribute('aria-live'), selector), 'off');
+      }
+    }
+    console.log('首屏与所有展场的逐件自动轮播、末件回到首件通过');
+
+    const selector = '#exhibition-room-0';
+    await page.evaluate(selector => document.querySelector(selector).scrollIntoView({ behavior: 'instant', block: 'center' }), selector);
+    await releaseInteraction();
+    const first = await readIndex(selector);
+    await tick(2000);
+    await page.click(`${selector} .room-next`);
+    const manual = await readIndex(selector);
+    assert.notEqual(manual, first);
+    await page.keyboard.press('Tab');
+    await tick(12000);
+    assert.equal(await readIndex(selector), manual, '键盘操作控件时不抢翻页');
+    await releaseInteraction();
+    const beforeAuto = await page.evaluate(selector => {
+      window.__advanceAutoplay(2999);
+      const current = Number(document.querySelector(`${selector} input`).value);
+      window.__advanceAutoplay(1);
+      return current;
+    }, selector);
+    assert.equal(beforeAuto, manual, '手动切换后重新等待完整 3 秒');
+    await page.waitForFunction(({ selector, manual }) => Number(document.querySelector(`${selector} input`).value) !== manual, { selector, manual });
+
+    await page.hover(`${selector} .room-product`);
+    const hovered = await readIndex(selector);
+    await tick(12000);
+    assert.equal(await readIndex(selector), hovered, '鼠标悬停作品时暂停');
+    await releaseInteraction();
+    await page.click('.exhibition-motion');
+    assert.equal(await page.evaluate(() => window.__autoplayTimers.size), 0, '全页暂停清除所有翻页计时器');
+    await tick(12000);
+    assert.equal(await readIndex(selector), hovered);
+    await page.click('.exhibition-motion');
+    await releaseInteraction();
+    await page.click(`${selector} .room-detail`);
+    await page.waitForSelector('.detail-modal');
+    assert.equal(await page.evaluate(() => window.__autoplayTimers.size), 0, '详情打开停止自动翻页');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.detail-modal', { state: 'hidden' });
+    await releaseInteraction();
+    await page.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await page.waitForFunction(() => window.__autoplayTimers.size === 0);
+    await tick(12000);
+    assert.equal(await readIndex(selector), hovered, '减少动态效果时保持当前作品');
+    await page.cdp('Emulation.setEmulatedMedia', { features: [] });
+    await releaseInteraction();
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
+    assert.equal(await page.evaluate(() => window.__autoplayTimers.size), 0, '页面隐藏清除计时器');
+    await tick(12000);
+    assert.equal(await readIndex(selector), hovered);
+    await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); });
+    await releaseInteraction();
+    await page.evaluate(() => document.querySelector('#exhibition-contact').scrollIntoView({ behavior: 'instant' }));
+    await page.waitForFunction(() => window.__autoplayTimers.size === 0);
+    await tick(12000);
+    assert.equal(await readIndex(selector), hovered, '离屏展场不补跳');
+    await page.click('.home-version-switch');
+    await page.waitForSelector('.hero');
+    assert.equal(await page.evaluate(() => window.__autoplayTimers.size), 0, '退出新版清理自动翻页');
+    console.log('首屏与全部展场 3 秒轮播、循环、手动重置、悬停/焦点、暂停、详情、隐藏、离屏及清理通过');
+  } finally {
+    await page.cdp('Page.removeScriptToEvaluateOnNewDocument', { identifier: clock.identifier });
+    await page.cdp('Emulation.setFocusEmulationEnabled', { enabled: false });
+    await page.cdp('Emulation.setEmulatedMedia', { features: [] });
+    await page.cdp('Emulation.clearDeviceMetricsOverride');
+  }
 }

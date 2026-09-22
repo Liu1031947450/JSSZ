@@ -1,5 +1,61 @@
 import { useEffect, type RefObject } from 'react';
 
+export function useExhibitionAutoplay(root: RefObject<HTMLElement | null>, paused: boolean, onNext: () => void) {
+  useEffect(() => {
+    const section = root.current;
+    if (!section || paused) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    let timer: number | undefined;
+    let visible = false;
+    let pressed = false;
+    let disposed = false;
+
+    function sync() {
+      window.clearTimeout(timer);
+      if (disposed || !visible || pressed || document.hidden || reducedMotion.matches) return;
+      if (section!.contains(document.activeElement) && document.activeElement?.matches(':focus-visible')) return;
+      if (finePointer.matches && section!.querySelector('button:hover, input:hover')) return;
+      const image = section!.querySelector<HTMLImageElement>('.room-product img');
+      if (image && (!image.complete || !image.naturalWidth)) return;
+      timer = window.setTimeout(onNext, 3000);
+    }
+    function onFocusOut() { queueMicrotask(sync); }
+    function onPointerDown() { pressed = true; sync(); }
+    function onPointerUp() { pressed = false; sync(); }
+    const observer = new IntersectionObserver(entries => {
+      visible = entries[0].isIntersecting && entries[0].intersectionRatio >= 0.25;
+      sync();
+    }, { threshold: 0.25 });
+    observer.observe(section);
+    section.addEventListener('focusin', sync);
+    section.addEventListener('focusout', onFocusOut);
+    section.addEventListener('pointerover', sync);
+    section.addEventListener('pointerout', sync);
+    section.addEventListener('pointerdown', onPointerDown);
+    section.addEventListener('load', sync, true);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+    document.addEventListener('visibilitychange', sync);
+    reducedMotion.addEventListener('change', sync);
+    return () => {
+      disposed = true;
+      window.clearTimeout(timer);
+      observer.disconnect();
+      section.removeEventListener('focusin', sync);
+      section.removeEventListener('focusout', onFocusOut);
+      section.removeEventListener('pointerover', sync);
+      section.removeEventListener('pointerout', sync);
+      section.removeEventListener('pointerdown', onPointerDown);
+      section.removeEventListener('load', sync, true);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      document.removeEventListener('visibilitychange', sync);
+      reducedMotion.removeEventListener('change', sync);
+    };
+  }, [root, paused, onNext]);
+}
+
 export default function useExhibitionMotion(root: RefObject<HTMLDivElement | null>, paused: boolean) {
   useEffect(() => {
     const page = root.current;

@@ -3,6 +3,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, RotateCcw } from 'lucid
 import type { Product } from './catalog';
 import { formatPrice } from './catalog';
 import { PhotoImage } from './PhotoWall';
+import { useExhibitionAutoplay } from './useExhibitionMotion';
 import './ExhibitionRooms.css';
 
 export type ExhibitionRoom = { category: string; products: Product[] };
@@ -13,13 +14,15 @@ const treatments = [
   { name: 'orbit', title: '每一份，都在发光。', subtitle: 'THE CELESTIAL ROOM', word: 'Little universe.', note: '沿着心动的轨迹，遇见下一件独一无二。' },
 ];
 
-export default function ExhibitionRooms({ room, index, nextId, onSelect }: { room: ExhibitionRoom; index: number; nextId: string; onSelect: (product: Product) => void }) {
+export default function ExhibitionRooms({ room, index, nextId, onSelect, paused }: { room: ExhibitionRoom; index: number; nextId: string; onSelect: (product: Product) => void; paused: boolean }) {
   const [selection, setSelection] = useState('');
+  const [automatic, setAutomatic] = useState(false);
   const [direction, setDirection] = useState(1);
   const [failedId, setFailedId] = useState('');
   const [attempt, setAttempt] = useState(0);
   const gesture = useRef<{ x: number; y: number; id: number } | null>(null);
   const swiped = useRef(false);
+  const section = useRef<HTMLElement>(null);
   const currentIndex = Math.max(0, room.products.findIndex(product => product.id === selection));
   const product = room.products[currentIndex];
   const treatment = treatments[index % treatments.length];
@@ -28,10 +31,13 @@ export default function ExhibitionRooms({ room, index, nextId, onSelect }: { roo
   const previous = room.products[(currentIndex + total - 1) % total];
   const next = room.products[(currentIndex + 1) % total];
 
-  function move(target: number) {
+  useExhibitionAutoplay(section, paused || total < 2 || failedId === product.id, () => move(currentIndex + 1, true));
+
+  function move(target: number, automatically = false) {
     const nextIndex = (target + total) % total;
     if (nextIndex === currentIndex) return;
     setDirection(target > currentIndex ? 1 : -1);
+    setAutomatic(automatically);
     setSelection(room.products[nextIndex].id);
   }
 
@@ -42,7 +48,7 @@ export default function ExhibitionRooms({ room, index, nextId, onSelect }: { roo
     move(event.key === 'Home' ? 0 : event.key === 'End' ? total - 1 : currentIndex + (event.key === 'ArrowLeft' ? -1 : 1));
   }
 
-  return <section className={`exhibition-room room-${treatment.name}`} id={roomId} data-chapter data-motion-section data-room-category={room.category} data-room-total={total} data-direction={direction} aria-labelledby={`${roomId}-title`} aria-roledescription="作品展场" onKeyDown={onKeyDown}>
+  return <section ref={section} className={`exhibition-room room-${treatment.name}`} id={roomId} data-chapter data-motion-section data-room-category={room.category} data-room-total={total} data-direction={direction} aria-labelledby={`${roomId}-title`} aria-roledescription="作品展场" onKeyDown={onKeyDown}>
     <div className="room-environment" aria-hidden="true"><span className="room-orbit-ring orbit-outer" /><span className="room-orbit-ring orbit-inner" /><span className="room-glow" /><span className="room-sculpture-loop" /><span className="room-grain" /></div>
     <header className="room-heading" data-reveal><span className="room-number">0{index + 1}</span><div><span className="room-eyebrow">{treatment.subtitle}</span><h2 id={`${roomId}-title`}>{room.category}</h2></div><span className="room-count">{total} 件作品 · {treatment.name === 'folio' ? '纸页剧场' : treatment.name === 'sculpture' ? '光影展台' : '星轨漫游'}</span></header>
     <div className="room-composition">
@@ -80,14 +86,14 @@ export default function ExhibitionRooms({ room, index, nextId, onSelect }: { roo
           <dl>{product.material && <><dt>材质</dt><dd>{product.material}</dd></>}<dt>参考价格</dt><dd>{formatPrice(product.price)}</dd></dl>
         </div>
         <button type="button" className="room-detail" onClick={() => onSelect(product)}>走近这件作品 <ArrowUpRight size={18} /></button>
-        <p className="room-help" id={`${roomId}-help`}>左右切换或滑动展品，点开查看完整故事。</p>
+        <p className="room-help" id={`${roomId}-help`}>{total > 1 ? '每 3 秒自动翻页，也可左右切换或滑动；顶部可暂停。' : '点开作品，查看完整故事。'}</p>
       </div>
     </div>
     <footer className="room-controls">
       <div className="room-step-buttons"><button type="button" className="room-prev" disabled={total < 2} aria-label={`上一件${room.category}展品`} onClick={() => move(currentIndex - 1)}><ArrowLeft size={19} /></button><button type="button" className="room-next" disabled={total < 2} aria-label={`下一件${room.category}展品`} onClick={() => move(currentIndex + 1)}><ArrowRight size={19} /></button></div>
       <label className="room-scrubber"><span>漫游{room.category} <strong>{String(currentIndex + 1).padStart(2, '0')} <i>/ {String(total).padStart(2, '0')}</i></strong></span><input type="range" min={0} max={Math.max(1, total - 1)} step={1} value={currentIndex} disabled={total < 2} onChange={event => move(Number(event.target.value))} aria-label={`选择${room.category}展品`} aria-valuetext={`第 ${currentIndex + 1} 件，共 ${total} 件：${product.name}`} /></label>
       <a className="room-next-chapter" href={`#${nextId}`}>下一幕 <ArrowDown size={17} /></a>
-      <span className="visually-hidden" role="status" aria-live="polite">{room.category}，第 {currentIndex + 1} 件，共 {total} 件：{product.name}</span>
+      <span className="visually-hidden" role="status" aria-live={automatic ? 'off' : 'polite'}>{room.category}，第 {currentIndex + 1} 件，共 {total} 件：{product.name}</span>
     </footer>
   </section>;
 }

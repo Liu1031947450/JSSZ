@@ -18,7 +18,7 @@
 
 新版使用同一份公开作品清单、作品详情和平台咨询入口，但不再渲染老版 `PhotoWall`、网格、缩略图列表或列表筛选栏。首屏从非置顶作品中选取最多六件作为立体相框展品（全为置顶时从置顶作品中选取）；下方全部作品按分类进入展场，每件只属于一个展场，不截断作品数量。先按原有置顶顺序排序，再按分类归组，各组保留原来的相对顺序。未分类内容进入「手作手记」。当前资料只有照片，不虚构作品本身的三维模型。
 
-展场交替使用三种构图与切换动效：「纸页剧场」的层叠纸页与立体翻页、「光影展台」的雕塑底座与作品升起、「星轨漫游」的深色轨道、悬浮主展品及相邻作品的空间预览。每幕只展示当前主作品，用前后箭头、进度滑杆、键盘方向键／Home／End 或触屏横向滑动切换，所有作品均可访问；不自动翻换正在阅读的作品，也不劫持纵向滚动。点击图片或「走近这件作品」打开原有详情，关闭后保留展品位置。图片完整适配，失败时提供独立重试；单件展场禁用切换，空清单显示空展厅而不是列表。
+展场交替使用三种构图与切换动效：「纸页剧场」的层叠纸页与立体翻页、「光影展台」的雕塑底座与作品升起、「星轨漫游」的深色轨道、悬浮主展品及相邻作品的空间预览。每幕只展示当前主作品，首屏选集和各展场在可见时每 3 秒自动切换下一件，最后一件回到第一件；仍可用前后箭头、进度滑杆、键盘方向键／Home／End 或触屏横向滑动切换，不劫持纵向滚动。鼠标悬停操作控件、键盘焦点在展区内或触屏按住时暂停，离开交互后重新计时；主图加载完成后才开始计时，图片失败时暂停并保留重试。顶部暂停、详情打开、页面隐藏、展区离屏及系统减少动态效果均停止轮播，恢复后从当前作品重新计时，不补跳。自动翻页不触发读屏播报。点击图片或「走近这件作品」打开原有详情，关闭后保留展品位置。图片完整适配；单件展场禁用切换且不轮播，空清单显示空展厅而不是列表。
 
 首屏和吸顶展场导航中的暂停按钮统一控制首屏、视差、翻页与循环动画，不遮挡展品操作。故事区的金环与珍珠、页尾轨道和章节文字带继续参与动效。详情打开、页面隐藏及系统减少动态效果时同样暂停；暂停时切换作品仍立即可见。原生观察器只激活可见区域的循环效果，滚动与鼠标更新合并为单次动画帧，离开新版时清理观察器、动画和监听。没有增加动画依赖或额外 WebGL 上下文，旧首页、共享作品组件和工作台保持原样。
 
@@ -37,10 +37,11 @@ npm run preview -- --port 4175
 ego-browser nodejs <<JS
 const task = await taskSpace('3D 首页回归');
 const { pathToFileURL } = await import('node:url');
-const { checkExhibitionHome, checkExhibitionFallbacks, checkExhibitionWholePage } = await import(pathToFileURL('$PWD/tests/exhibition-home.browser.mjs').href);
+const { checkExhibitionHome, checkExhibitionFallbacks, checkExhibitionWholePage, checkExhibitionAutoplay } = await import(pathToFileURL('$PWD/tests/exhibition-home.browser.mjs').href);
 await checkExhibitionHome(task.page('p1'), 'http://127.0.0.1:4175');
 await checkExhibitionFallbacks(task.page('p1'), 'http://127.0.0.1:4175');
 await checkExhibitionWholePage(task.page('p1'), 'http://127.0.0.1:4175');
+await checkExhibitionAutoplay(task.page('p1'), 'http://127.0.0.1:4175');
 await task.finish({ keep: [] });
 JS
 ```

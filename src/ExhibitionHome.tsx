@@ -5,16 +5,19 @@ import { sortProducts } from './catalog';
 import { ProductDetail } from './PhotoWall';
 import LoadErrorNotice from './LoadErrorNotice';
 import ThreeGallery from './ThreeGallery';
-import useExhibitionMotion from './useExhibitionMotion';
+import useExhibitionMotion, { useExhibitionAutoplay } from './useExhibitionMotion';
 import ExhibitionRooms, { type ExhibitionRoom } from './ExhibitionRooms';
 import './ExhibitionHome.css';
 
 export default function ExhibitionHome({ catalog, error, loading, onRetry, disclaimer, active }: { catalog: Catalog | null; error: string; loading: boolean; onRetry: () => void; disclaimer: string; active: boolean }) {
   const [selected, setSelected] = useState<Product | null>(null);
   const [focusIndex, setFocusIndex] = useState(0);
+  const [automatic, setAutomatic] = useState(false);
   const [paused, setPaused] = useState(false);
   const root = useRef<HTMLDivElement>(null);
-  useExhibitionMotion(root, paused || !active || Boolean(selected));
+  const hero = useRef<HTMLElement>(null);
+  const motionPaused = paused || !active || Boolean(selected);
+  useExhibitionMotion(root, motionPaused);
   const { featured, rooms } = useMemo(() => {
     const ordered = sortProducts(catalog?.products || []);
     const works = ordered.filter(product => product.pinOrder === undefined);
@@ -29,12 +32,18 @@ export default function ExhibitionHome({ catalog, error, loading, onRetry, discl
   }, [catalog]);
   const currentIndex = focusIndex % (featured.length || 1);
   const current = featured[currentIndex];
+  useExhibitionAutoplay(hero, motionPaused || featured.length < 2, () => moveFeatured(currentIndex + 1, true));
+
+  function moveFeatured(target: number, automatically = false) {
+    setAutomatic(automatically);
+    setFocusIndex((target + featured.length) % featured.length);
+  }
 
   return <div className="exhibition-home" ref={root}>
-    <section className="exhibition-hero" aria-labelledby="exhibition-title">
+    <section ref={hero} className="exhibition-hero" aria-labelledby="exhibition-title">
       <div className="exhibition-landscape" aria-hidden="true"><span className="exhibition-sun" /><span className="exhibition-hill hill-far" /><span className="exhibition-hill hill-near" /><span className="exhibition-orbit orbit-one" /><span className="exhibition-orbit orbit-two" /></div>
       <div className="exhibition-edition"><span><i /> 简时手作 · 灵感新生</span><span>THE HANDMADE EDITION / 01</span></div>
-      <ThreeGallery products={featured} focusIndex={currentIndex} paused={paused || !active || Boolean(selected)} onSelect={setSelected} />
+      <ThreeGallery products={featured} focusIndex={currentIndex} paused={motionPaused} onSelect={setSelected} />
       <div className="exhibition-hero-copy">
         <span className="exhibition-kicker">A SMALL WORLD, MADE BY HAND</span>
         <h1 id="exhibition-title">把时光，<br /><span>留在手心。</span></h1>
@@ -46,9 +55,9 @@ export default function ExhibitionHome({ catalog, error, loading, onRetry, discl
       <div className="exhibition-hero-bottom">
         <a className="exhibition-scroll" href="#exhibition-index"><ArrowDown size={17} /><span>向下，走进小小美好<small>SCROLL TO DISCOVER</small></span></a>
         {current && <div className="exhibition-selection" aria-label="立体展品选择">
-          <button type="button" aria-label="上一件立体展品" onClick={() => setFocusIndex((currentIndex + featured.length - 1) % featured.length)}><ArrowLeft size={17} /></button>
-          <button type="button" className="exhibition-current" aria-label={`查看立体展品：${current.name}`} onClick={() => setSelected(current)}><small>{String(currentIndex + 1).padStart(2, '0')} / {String(featured.length).padStart(2, '0')} · 灵感选集</small><span aria-live="polite">{current.name} <MoveUpRight size={13} /></span></button>
-          <button type="button" aria-label="下一件立体展品" onClick={() => setFocusIndex((currentIndex + 1) % featured.length)}><ArrowRight size={17} /></button>
+          <button type="button" aria-label="上一件立体展品" onClick={() => moveFeatured(currentIndex - 1)}><ArrowLeft size={17} /></button>
+          <button type="button" className="exhibition-current" aria-label={`查看立体展品：${current.name}`} onClick={() => setSelected(current)}><small>{String(currentIndex + 1).padStart(2, '0')} / {String(featured.length).padStart(2, '0')} · 灵感选集</small><span aria-live={automatic ? 'off' : 'polite'}>{current.name} <MoveUpRight size={13} /></span></button>
+          <button type="button" aria-label="下一件立体展品" onClick={() => moveFeatured(currentIndex + 1)}><ArrowRight size={17} /></button>
         </div>}
         <button type="button" className="exhibition-hero-motion" aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? <Play size={14} /> : <Pause size={14} />}<span>{paused ? '开启全页动效' : '暂停全页动效'}</span></button>
       </div>
@@ -69,7 +78,7 @@ export default function ExhibitionHome({ catalog, error, loading, onRetry, discl
       {catalog && !catalog.products.length && <div className="exhibition-empty" role="status"><Sparkles size={32} /><h3>新的故事，正在酝酿。</h3><p>作品准备好后，会在这里与你相遇。</p></div>}
     </section>
 
-    {rooms.map((room, index) => <ExhibitionRooms key={room.products[0].category} room={room} index={index} nextId={index + 1 < rooms.length ? `exhibition-room-${index + 1}` : 'about'} onSelect={setSelected} />)}
+    {rooms.map((room, index) => <ExhibitionRooms key={room.products[0].category} room={room} index={index} nextId={index + 1 < rooms.length ? `exhibition-room-${index + 1}` : 'about'} onSelect={setSelected} paused={motionPaused} />)}
 
     <div className="exhibition-ribbon" data-motion-section aria-hidden="true"><div className="exhibition-ribbon-track">{[0, 1].map(copy => <span key={copy}>SMALL THINGS <i>✳</i> BIG FEELINGS <i>✳</i> 小小手作，长长心意 <i>✳</i> </span>)}</div></div>
 
