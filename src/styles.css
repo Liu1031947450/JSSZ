@@ -58,6 +58,10 @@ input, textarea, select { max-width: 100%; }
 .site-header nav > a:hover, .site-header nav .nav-active { color: var(--sage); }
 .nav-active span { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #92a575; left: calc(50% - 2px); bottom: 2px; }
 .header-contacts { padding-left: 25px; border-left: 1px solid #e1e3d5; }
+.home-version-switch { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 16px; border: 1px solid #71835e; border-radius: 99px; background: #e9eedf; color: #465637; font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; transition: background .2s; }
+.home-version-switch:hover { background: #dce5cd; }
+.home-version-switch:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+@media (max-width: 960px) { .site-header:has(.home-version-switch) { flex-wrap: wrap; padding-block: 14px; } .site-header:has(.home-version-switch) nav { flex-wrap: wrap; gap: 12px 18px; } }
 .hero { position: relative; display: flex; align-items: center; justify-content: center; min-height: clamp(176px, 22vw, 220px); padding: clamp(20px, 3vw, 28px) 0; text-align: center; }
 .eyebrow { display: block; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; color: #83916f; }
 .hero-eyebrow { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 9px; letter-spacing: 2.8px; }

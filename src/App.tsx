@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Button, Icon } from 'animal-island-ui-tailwind';
 import { Flower, Gift, Heart, Leaf } from 'lucide-react';
 import PhotoWall from './PhotoWall';
@@ -11,19 +11,33 @@ import { assetUrl, basePath } from './config';
 import { fetchPublishedCatalog } from './github';
 
 const Admin = lazy(() => import('./Admin'));
+const ExhibitionHome = lazy(() => import('./ExhibitionHome'));
 const disclaimerText = '本网站仅作为作品款式展示电子画册，所有咨询、沟通、订单交易，全部请在对应平台完成，网页不承接任何付款下单。';
+
+class ExhibitionBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    return this.state.failed ? <LoadErrorNotice onRetry={() => window.location.reload()}>新版首页暂时未能加载，可以重新加载，或通过顶部按钮返回老版首页。</LoadErrorNotice> : this.props.children;
+  }
+}
 
 export default function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [admin, setAdmin] = useState(window.location.hash.startsWith('#/admin'));
+  const [exhibition, setExhibition] = useState(new URLSearchParams(window.location.search).get('home') === '3d');
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    const navigate = () => setAdmin(window.location.hash.startsWith('#/admin'));
+    const navigate = () => {
+      setAdmin(window.location.hash.startsWith('#/admin'));
+      setExhibition(new URLSearchParams(window.location.search).get('home') === '3d');
+    };
     window.addEventListener('hashchange', navigate);
-    return () => window.removeEventListener('hashchange', navigate);
+    window.addEventListener('popstate', navigate);
+    return () => { window.removeEventListener('hashchange', navigate); window.removeEventListener('popstate', navigate); };
   }, []);
   useEffect(() => {
     if (admin) return;
@@ -42,11 +56,20 @@ export default function App() {
     document.addEventListener('visibilitychange', onVisible);
     return () => { active = false; controller.abort(); document.removeEventListener('visibilitychange', onVisible); };
   }, [admin, reload]);
-  return <div className="site-shell" inert={showDisclaimer}>
+  function switchHome() {
+    const next = new URL(window.location.href);
+    if (exhibition) next.searchParams.delete('home');
+    else next.searchParams.set('home', '3d');
+    next.hash = '';
+    window.history.pushState(window.history.state, '', next);
+    setExhibition(!exhibition);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  return <div className={`site-shell${!admin && exhibition ? ' exhibition-shell' : ''}`} inert={showDisclaimer}>
     <a className="skip-link" href="#main">跳到主要内容</a>
-    <header className="site-header"><a className="brand" href="#" aria-label="简时手作首页"><span className="brand-mark"><img src={assetUrl('logo.png')} alt="简时手作 Logo" width={256} height={256} decoding="async" /></span><span>简时手作<small>JIANSHI · HANDMADE</small></span></a><nav aria-label="主导航">{!admin && <><a className="nav-active" href="#works">作品墙<span /></a><a href="#about">关于手作</a></>}<ContactLinks className="header-contacts" /></nav></header>
+    <header className="site-header"><a className="brand" href="#" aria-label="简时手作首页"><span className="brand-mark"><img src={assetUrl('logo.png')} alt="简时手作 Logo" width={256} height={256} decoding="async" /></span><span>简时手作<small>JIANSHI · HANDMADE</small></span></a><nav aria-label="主导航">{!admin && <><a className="nav-active" href="#works">{exhibition ? '作品展厅' : '作品墙'}<span /></a><a href="#about">关于手作</a><button type="button" className="home-version-switch" onClick={switchHome}>{exhibition ? '返回老版首页' : '切换新版首页'}<span aria-hidden="true">{exhibition ? '↩' : '↗'}</span></button></>}<ContactLinks className="header-contacts" /></nav></header>
     <main id="main" tabIndex={-1}>
-      {admin ? <Suspense fallback={<div className="page-status" role="status">正在打开手作工作台…</div>}><Admin /></Suspense> : <>
+      {admin ? <Suspense fallback={<div className="page-status" role="status">正在打开手作工作台…</div>}><Admin /></Suspense> : exhibition ? <ExhibitionBoundary><Suspense fallback={<div className="page-status" role="status">正在打开手作展厅…</div>}><ExhibitionHome catalog={catalog} error={error} loading={loading} onRetry={() => setReload((count) => count + 1)} disclaimer={disclaimerText} active={!showDisclaimer} /></Suspense></ExhibitionBoundary> : <>
         <section className="hero" aria-labelledby="site-title"><div className="hero-flower" aria-hidden="true"><Icon icon={Flower} size={48} /><span>made with love</span></div><div className="hero-copy"><span className="eyebrow hero-eyebrow"><span /> A LITTLE JOY, MADE BY HAND <span /></span><h1 id="site-title">简时手作<span className="title-spark" aria-hidden="true">✳</span></h1><p>把日子，做成喜欢的样子。</p><span className="hero-subtitle">一些手作 · 一点灵感 · 一份认真生活的心意</span></div><div className="hero-label" aria-hidden="true"><Icon icon={Heart} size={22} /><span>慢一点<br />也很好</span><small>JUST TAKE IT SLOW</small></div></section>
         <aside className="home-disclaimer" aria-label="重要声明"><strong>重要声明</strong><p>{disclaimerText}</p></aside>
         {error && <LoadErrorNotice detail={error} loading={loading} onRetry={() => setReload((count) => count + 1)}>{catalog ? '暂时无法获取最新作品，以下为本次已加载的内容。' : '还没能读到作品清单，请稍后再试。'}</LoadErrorNotice>}
