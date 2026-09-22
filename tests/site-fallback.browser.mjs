@@ -21,7 +21,7 @@ export async function checkStartupFallback(page, origin = 'http://127.0.0.1:5173
     await page.cdp('Network.setBlockedURLs', { urls: [] });
     await page.click('#startup-fallback button');
     await acceptDisclaimer(page);
-    await page.waitForSelector('.photo-grid');
+    await page.waitForSelector('.exhibition-room');
     assert.equal(await page.evaluate(() => Boolean(document.querySelector('#startup-fallback'))), false, '启动成功后移除原生兜底');
     console.log('入口脚本与样式失败、原生提示、手机布局、恢复网络后按钮刷新通过');
   } finally {
@@ -31,7 +31,7 @@ export async function checkStartupFallback(page, origin = 'http://127.0.0.1:5173
 }
 
 export async function checkDetailImageRetry(page, origin = 'http://127.0.0.1:5173') {
-  await page.goto(origin, { waitUntil: 'domcontentloaded' });
+  await page.goto(new URL('?home=legacy', origin).href, { waitUntil: 'domcontentloaded' });
   await acceptDisclaimer(page);
   await page.waitForSelector('.photo-grid');
   const response = await page.fetch(new URL('catalog.json', `${origin.replace(/\/$/, '')}/`).href);
@@ -102,7 +102,7 @@ export async function checkSiteFallback(page, origin = 'http://127.0.0.1:5173') 
     };
   ` });
   try {
-    await page.goto(origin, { waitUntil: 'domcontentloaded' });
+    await page.goto(new URL('?home=legacy', origin).href, { waitUntil: 'domcontentloaded' });
     await acceptDisclaimer(page);
     await page.waitForSelector('.load-error-notice');
     assert.equal(await page.evaluate(() => Boolean(document.querySelector('.photo-grid'))), false);

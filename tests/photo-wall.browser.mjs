@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { acceptDisclaimer } from './disclaimer.browser.mjs';
 
 export async function checkDetailHistory(page, origin = 'http://127.0.0.1:4174') {
-  await page.goto(origin);
+  await page.goto(new URL('?home=legacy', origin).href);
   await acceptDisclaimer(page);
   await page.waitForSelector('.photo-open');
   await page.cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -77,7 +77,7 @@ export async function checkHeroLayout(page) {
 }
 
 export async function checkFloatingContacts(page) {
-  await page.goto('http://127.0.0.1:4174', { waitUntil: 'domcontentloaded' });
+  await page.goto('http://127.0.0.1:4174/?home=legacy', { waitUntil: 'domcontentloaded' });
   await acceptDisclaimer(page);
   await page.waitForSelector('.photo-grid');
   for (const width of [320, 390, 768, 800, 801, 1440]) {
@@ -221,7 +221,7 @@ export async function checkPhotoWall(page) {
   }
   const state = await request('/__test/state');
   assert.equal(state.head, 'test-baseline', '请重新启动隔离验收服务，避免覆盖已有测试数据');
-  await page.goto(origin);
+  await page.goto(new URL('?home=legacy', origin).href);
   const images = await page.evaluate(() => [[320, 960], [1280, 320]].map(([width, height]) => {
     const canvas = document.createElement('canvas');
     canvas.width = width; canvas.height = height;

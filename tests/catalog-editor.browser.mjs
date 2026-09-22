@@ -301,7 +301,7 @@ export async function checkProductPins(page, visitor) {
   await page.click('.confirmation-modal .animal-modal-footer button:last-child');
   await page.waitForSelector('.admin-toolbar button:first-child:not([disabled])');
   await page.waitForSelector('.save-status.saved');
-  await visitor.goto(origin);
+  await visitor.goto(new URL('?home=legacy', origin).href);
   await acceptDisclaimer(visitor);
   await visitor.waitForSelector('.photo-grid');
   for (const position of [2, 0, 1]) await page.click(pinButton(position));
@@ -580,7 +580,7 @@ export async function checkCatalogEditor(page, visitor) {
   }
   const state = await (await fetch(`${origin}/__test/state`)).json();
   assert.equal(state.catalog.products.length, 4, '请先运行 checkPhotoWall 创建隔离测试作品');
-  await visitor.goto(origin);
+  await visitor.goto(new URL('?home=legacy', origin).href);
   await acceptDisclaimer(visitor);
   await visitor.waitForSelector('#wall-category');
   await visitor.selectOption('#wall-category', '项链');

@@ -10,7 +10,7 @@ export async function acceptDisclaimer(page) {
 
 export async function checkDisclaimer(page, origin = 'http://127.0.0.1:5173') {
   await page.goto('about:blank');
-  await page.goto(origin);
+  await page.goto(new URL('?home=legacy', origin).href);
   await page.waitForSelector('.disclaimer-modal button');
   const initial = await page.evaluate(() => {
     const modal = document.querySelector('.disclaimer-modal');
@@ -64,7 +64,7 @@ export async function checkDisclaimer(page, origin = 'http://127.0.0.1:5173') {
   await page.keyboard.press('Enter');
   await page.waitForSelector('.disclaimer-modal', { state: 'hidden' });
   await page.goto('about:blank');
-  await page.goto(origin);
+  await page.goto(new URL('?home=legacy', origin).href);
   await page.waitForSelector('.disclaimer-modal button');
   await acceptDisclaimer(page);
   assert.equal(await page.evaluate(() => document.querySelector('.home-disclaimer p').textContent), initial.content);

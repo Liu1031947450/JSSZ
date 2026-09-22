@@ -11,11 +11,24 @@ export async function checkExhibitionHome(page, origin = 'http://127.0.0.1:4175'
   try {
     await page.goto(origin);
     await acceptDisclaimer(page);
+    await page.waitForSelector('.scene-ready');
+    await assertNoGrid(page);
+    await page.reload();
+    await acceptDisclaimer(page);
+    await page.waitForSelector('.scene-ready');
+    await assertNoGrid(page);
+    await page.click('.home-version-switch');
+    await page.waitForSelector('.hero');
+    assert.equal(await page.evaluate(() => new URLSearchParams(location.search).get('home')), 'legacy');
+    assert.equal(await page.evaluate(() => Boolean(document.querySelector('.disclaimer-modal'))), false);
+    await page.reload();
+    await acceptDisclaimer(page);
     await page.waitForSelector('.photo-open');
     const originalCount = await page.evaluate(() => document.querySelectorAll('.photo-memory').length);
     assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').some(entry => /three\.module/.test(entry.name))), false);
     await page.click('.home-version-switch');
     await page.waitForSelector('.scene-ready');
+    assert.equal(await page.evaluate(() => new URLSearchParams(location.search).has('home')), false);
     await assertNoGrid(page);
     assert.equal(await page.evaluate(() => [...document.querySelectorAll('.exhibition-room')].reduce((count, room) => count + Number(room.dataset.roomTotal), 0)), originalCount);
     assert.equal(await page.evaluate(() => Boolean(document.querySelector('.disclaimer-modal'))), false);
@@ -60,7 +73,12 @@ export async function checkExhibitionHome(page, origin = 'http://127.0.0.1:4175'
     await page.waitForSelector('.admin-page');
     assert.equal(await page.evaluate(() => Boolean(document.querySelector('.exhibition-shell, .exhibition-room, .exhibition-scene, .home-version-switch'))), false);
     assert.deepEqual(await page.evaluate(() => window.__exhibitionErrors), []);
-    console.log(`新旧切换、${originalCount} 件作品保留、详情、暂停、WebGL 释放、历史与工作台隔离通过`);
+    await page.goto(`${origin}/#/admin`);
+    await page.reload();
+    await acceptDisclaimer(page);
+    await page.waitForSelector('.admin-page');
+    assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').some(entry => /ExhibitionHome|three\.module/.test(entry.name))), false, '直接访问工作台不加载新版首页');
+    console.log(`默认新版、刷新保留版本、新旧切换、${originalCount} 件作品保留、详情、暂停、WebGL 释放、历史与工作台隔离通过`);
   } finally {
     await page.cdp('Page.removeScriptToEvaluateOnNewDocument', { identifier: instrumentation.identifier });
     await page.cdp('Emulation.setEmulatedMedia', { features: [] });

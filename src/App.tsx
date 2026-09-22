@@ -25,7 +25,7 @@ class ExhibitionBoundary extends Component<{ children: ReactNode }, { failed: bo
 export default function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [admin, setAdmin] = useState(window.location.hash.startsWith('#/admin'));
-  const [exhibition, setExhibition] = useState(new URLSearchParams(window.location.search).get('home') === '3d');
+  const [exhibition, setExhibition] = useState(new URLSearchParams(window.location.search).get('home') !== 'legacy');
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
@@ -33,7 +33,7 @@ export default function App() {
   useEffect(() => {
     const navigate = () => {
       setAdmin(window.location.hash.startsWith('#/admin'));
-      setExhibition(new URLSearchParams(window.location.search).get('home') === '3d');
+      setExhibition(new URLSearchParams(window.location.search).get('home') !== 'legacy');
     };
     window.addEventListener('hashchange', navigate);
     window.addEventListener('popstate', navigate);
@@ -58,8 +58,8 @@ export default function App() {
   }, [admin, reload]);
   function switchHome() {
     const next = new URL(window.location.href);
-    if (exhibition) next.searchParams.delete('home');
-    else next.searchParams.set('home', '3d');
+    if (exhibition) next.searchParams.set('home', 'legacy');
+    else next.searchParams.delete('home');
     next.hash = '';
     window.history.pushState(window.history.state, '', next);
     setExhibition(!exhibition);

@@ -109,7 +109,7 @@ export async function checkWorkspaceInteractions(page, visitor, origin = 'http:/
     await importBackup(orderedFile);
     await page.click('.publish-panel > button');
     await page.waitForFunction(() => document.querySelector('.notice.success')?.textContent.includes('网站已更新'));
-    await visitor.goto(origin); await acceptDisclaimer(visitor); await visitor.waitForSelector('.photo-grid');
+    await visitor.goto(new URL('?home=legacy', origin).href); await acceptDisclaimer(visitor); await visitor.waitForSelector('.photo-grid');
     const visible = () => visitor.evaluate(() => [...document.querySelectorAll('.photo-caption-heading h3')].map(heading => heading.textContent));
     assert.deepEqual(await visible(), [products[3], products[0], products[2], products[1]].map(product => product.name));
     await visitor.selectOption('#wall-sort', 'asc');
