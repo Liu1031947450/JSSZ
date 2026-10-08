@@ -18,7 +18,7 @@ class ExhibitionBoundary extends Component<{ children: ReactNode }, { failed: bo
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() {
-    return this.state.failed ? <LoadErrorNotice onRetry={() => window.location.reload()}>新版首页暂时未能加载，可以重新加载，或通过顶部按钮返回老版首页。</LoadErrorNotice> : this.props.children;
+    return this.state.failed ? <LoadErrorNotice onRetry={() => window.location.reload()}>新版首页暂时未能加载，可以重新加载，或通过顶部按钮返回旧版首页。</LoadErrorNotice> : this.props.children;
   }
 }
 
@@ -67,7 +67,7 @@ export default function App() {
   }
   return <div className={`site-shell${!admin && exhibition ? ' exhibition-shell' : ''}`} inert={showDisclaimer}>
     <a className="skip-link" href="#main">跳到主要内容</a>
-    <header className="site-header"><a className="brand" href="#" aria-label="简时手作首页"><span className="brand-mark"><img src={assetUrl('logo.png')} alt="简时手作 Logo" width={256} height={256} decoding="async" /></span><span>简时手作<small>JIANSHI · HANDMADE</small></span></a><nav aria-label="主导航">{!admin && <><a className="nav-active" href="#works">{exhibition ? '作品展厅' : '作品墙'}<span /></a><a href="#about">关于手作</a><button type="button" className="home-version-switch" onClick={switchHome}>{exhibition ? '返回老版首页' : '切换新版首页'}<span aria-hidden="true">{exhibition ? '↩' : '↗'}</span></button></>}<ContactLinks className="header-contacts" /></nav></header>
+    <header className="site-header"><a className="brand" href="#" aria-label="简时手作首页"><span className="brand-mark"><img src={assetUrl('logo.png')} alt="简时手作 Logo" width={256} height={256} decoding="async" /></span><span>简时手作<small>JIANSHI · HANDMADE</small></span></a><nav aria-label="主导航">{!admin && <><a className="nav-active" href="#works">{exhibition ? '作品展厅' : '作品墙'}<span /></a><a href="#about">关于手作</a><button type="button" className="home-version-switch" onClick={switchHome}>{exhibition ? '返回旧版首页' : '切换新版首页'}<span aria-hidden="true">{exhibition ? '↩' : '↗'}</span></button></>}<ContactLinks className="header-contacts" /></nav></header>
     <main id="main" tabIndex={-1}>
       {admin ? <Suspense fallback={<div className="page-status" role="status">正在打开手作工作台…</div>}><Admin /></Suspense> : exhibition ? <ExhibitionBoundary><Suspense fallback={<div className="page-status" role="status">正在打开手作展厅…</div>}><ExhibitionHome catalog={catalog} error={error} loading={loading} onRetry={() => setReload((count) => count + 1)} disclaimer={disclaimerText} active={!showDisclaimer} /></Suspense></ExhibitionBoundary> : <>
         <section className="hero" aria-labelledby="site-title"><div className="hero-flower" aria-hidden="true"><Icon icon={Flower} size={48} /><span>made with love</span></div><div className="hero-copy"><span className="eyebrow hero-eyebrow"><span /> A LITTLE JOY, MADE BY HAND <span /></span><h1 id="site-title">简时手作<span className="title-spark" aria-hidden="true">✳</span></h1><p>把日子，做成喜欢的样子。</p><span className="hero-subtitle">一些手作 · 一点灵感 · 一份认真生活的心意</span></div><div className="hero-label" aria-hidden="true"><Icon icon={Heart} size={22} /><span>慢一点<br />也很好</span><small>JUST TAKE IT SLOW</small></div></section>
