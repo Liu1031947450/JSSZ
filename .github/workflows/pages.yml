@@ -35,7 +35,7 @@ jobs:
           VITE_GITHUB_BRANCH: ${{ github.ref_name }}
           VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
           VITE_PUBLIC_SITE_URL: ${{ steps.pages.outputs.base_url }}/
-          VITE_VISITOR_COUNTER_URL: ${{ vars.VISITOR_COUNTER_URL }}
+          VITE_VISITOR_COUNTER_URL: https://jssz.pages.dev/api
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

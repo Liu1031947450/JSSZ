@@ -85,7 +85,7 @@ npm run preview
 | `VITE_GITHUB_BRANCH` | 内容发布分支，默认 `main` |
 | `VITE_BASE_PATH` | 本地为 `/`，项目 Pages 通常为 `/JSSZ/`，必须以 `/` 开头和结尾 |
 | `VITE_PUBLIC_SITE_URL` | 最终公开站点完整基地址，用于核对是否上线；本地编辑时也应指向真实线上地址 |
-| `VITE_VISITOR_COUNTER_URL` | 页脚访问计数接口（公开值，经 pages.dev 代理到 Worker）；留空则不显示计数 |
+| `VITE_VISITOR_COUNTER_URL` | 页脚访问计数 API 基地址（公开值，客户端自动补 `/count`；经 pages.dev 代理到 Worker）；留空则不显示计数 |
 
 工作流会根据仓库信息和 Pages 配置自动注入这些值。本地 `.env.local` 中只有公开配置。没有任何 `VITE_*` 变量可用于保存秘密，因为它们都会进入浏览器代码。
 
@@ -98,7 +98,7 @@ npm run preview
 
 计数口径为日独立访客累计（每人每天最多 +1）。Worker 不存 IP、不存 UA，只存 4 天后自动过期的随机访客 ID。Worker 不可达时页脚静默不显示计数。
 
-浏览器不直连 Worker：`workers.dev` 在部分网络被 DNS+SNI 封锁，所以请求走 `functions/api/count.ts` 这个 Pages Function 反向代理转发（`jssz.pages.dev/api/count` → Worker），两个站点域名共用同一个计数器。
+浏览器不直连 Worker：`workers.dev` 在部分网络被 DNS+SNI 封锁，所以请求走 `functions/api/count.ts` 这个 Pages Function 反向代理转发（`jssz.pages.dev/api/count` → Worker），两个站点域名共用同一个计数器。`VITE_VISITOR_COUNTER_URL` 填基地址 `https://jssz.pages.dev/api`，客户端会自动补全 `/count`。
 
 部署（需要 Cloudflare 账号，免费额度即可）：
 
@@ -108,7 +108,7 @@ npx wrangler kv create VISIT_COUNT        # 把返回的 id 填入 wrangler.toml
 npx wrangler deploy                       # 得到 https://jssz-visit-counter.<account>.workers.dev
 ```
 
-然后在仓库 **Settings → Secrets and variables → Actions → Variables** 新建 `VISITOR_COUNTER_URL`，值为 `https://jssz.pages.dev/api/count`（CF Pages 项目的 `VITE_VISITOR_COUNTER_URL` 同值）；或直接写入本地 `.env.local`。CORS 白名单在 `counter/src/index.ts` 的 `ALLOWED_ORIGINS` 中维护。
+计数接口地址固定为 `https://jssz.pages.dev/api`（客户端自动补 `/count`），写在两处：`.github/workflows/pages.yml` 的 `VITE_VISITOR_COUNTER_URL` 与 CF Pages 项目的同名环境变量；留空则不显示计数。CORS 白名单在 `counter/src/index.ts` 的 `ALLOWED_ORIGINS` 中维护。
 
 其他静态托管平台使用构建命令 `npm run build`、产物目录 `dist` 即可。若改用 Vercel，建议安装 `npm i -g vercel`，方便使用 `vercel env pull`、`vercel deploy` 和 `vercel logs`；当前 GitHub Pages 方案不需要 Vercel CLI。
 
