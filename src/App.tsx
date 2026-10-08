@@ -5,6 +5,7 @@ import PhotoWall from './PhotoWall';
 import Modal from './Modal';
 import LoadErrorNotice from './LoadErrorNotice';
 import ContactLinks, { FloatingContacts } from './Contact';
+import VisitCounter from './VisitCounter';
 import type { Catalog } from './catalog';
 import { messageOf } from './catalog';
 import { assetUrl, basePath } from './config';
@@ -78,7 +79,7 @@ export default function App() {
         <section className="about-section" id="about" aria-labelledby="about-title"><div className="about-heading"><span className="eyebrow">LITTLE THINGS MATTER</span><h2 id="about-title">手作，是和生活的温柔对话。</h2><p>不追赶时间，不批量复制。<br className="mobile-break" />让平凡的材料，长出自己的小故事。</p></div><div className="about-values"><div><span className="value-icon sage"><Icon icon={Leaf} size={25} /></span><h3>自然的灵感</h3><p>从四季与日常里，<br />捡起一点小小的美好。</p></div><div><span className="value-icon peach"><Icon icon={Heart} size={25} /></span><h3>手心的温度</h3><p>慢慢打磨每个细节，<br />也留下手作独有的痕迹。</p></div><div><span className="value-icon butter"><Icon icon={Gift} size={25} /></span><h3>独一份心意</h3><p>珍藏那些不必完美，<br />却足够真诚的喜欢。</p></div></div></section>
       </>}
     </main>
-    <footer className="site-footer"><div className="footer-signature"><Icon icon={Leaf} size={17} /><span>慢慢做，好好生活。</span></div><ContactLinks /><div className="footer-bottom"><small>© {new Date().getFullYear()} 简时手作 · 个人作品展示</small><div><a href={assetUrl('animal-island-ui-tailwind-LICENSE.txt')} target="_blank" rel="noreferrer">UI: Animal Island UI Tailwind · MIT</a><a className="admin-entry" href="#/admin" aria-label="进入管理工作台" title="管理工作台"><Icon icon={Leaf} size={16} /></a></div></div></footer>
+    <footer className="site-footer"><div className="footer-signature"><Icon icon={Leaf} size={17} /><span>慢慢做，好好生活。</span></div><ContactLinks /><div className="footer-bottom"><small>© {new Date().getFullYear()} 简时手作 · 个人作品展示</small><VisitCounter /><div><a href={assetUrl('animal-island-ui-tailwind-LICENSE.txt')} target="_blank" rel="noreferrer">UI: Animal Island UI Tailwind · MIT</a><a className="admin-entry" href="#/admin" aria-label="进入管理工作台" title="管理工作台"><Icon icon={Leaf} size={16} /></a></div></div></footer>
     <FloatingContacts />
     {showDisclaimer && <Modal open title="重要声明" width={520} typewriter={false} maskClosable={false} className="disclaimer-modal" footer={<Button type="primary" aria-describedby="site-disclaimer" onClick={() => setShowDisclaimer(false)}>我同意</Button>}><p id="site-disclaimer">{disclaimerText}</p></Modal>}
   </div>;

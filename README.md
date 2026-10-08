@@ -85,8 +85,28 @@ npm run preview
 | `VITE_GITHUB_BRANCH` | 内容发布分支，默认 `main` |
 | `VITE_BASE_PATH` | 本地为 `/`，项目 Pages 通常为 `/JSSZ/`，必须以 `/` 开头和结尾 |
 | `VITE_PUBLIC_SITE_URL` | 最终公开站点完整基地址，用于核对是否上线；本地编辑时也应指向真实线上地址 |
+| `VITE_VISITOR_COUNTER_URL` | 页脚访问计数 Worker 地址（公开值）；留空则不显示计数 |
 
 工作流会根据仓库信息和 Pages 配置自动注入这些值。本地 `.env.local` 中只有公开配置。没有任何 `VITE_*` 变量可用于保存秘密，因为它们都会进入浏览器代码。
+
+### 页脚访问计数
+
+页脚显示「已有 N 次到访」，由 `counter/` 目录下的 Cloudflare Worker + KV 实现，去重两层：
+
+1. 浏览器本地 24 小时节流：同一人反复刷新当天只上报一次；
+2. Worker 按「访客 ID + 东八区日期」权威去重：清缓存、换浏览器同日重复上报也不会虚增。
+
+计数口径为日独立访客累计（每人每天最多 +1）。Worker 不存 IP、不存 UA，只存 4 天后自动过期的随机访客 ID。Worker 不可达时页脚静默不显示计数。
+
+部署（需要 Cloudflare 账号，免费额度即可）：
+
+```sh
+cd counter
+npx wrangler kv create VISIT_COUNT        # 把返回的 id 填入 wrangler.toml
+npx wrangler deploy                       # 得到 https://jssz-visit-counter.<account>.workers.dev
+```
+
+然后在仓库 **Settings → Secrets and variables → Actions → Variables** 新建 `VISITOR_COUNTER_URL`，值为上面的 Worker 地址；或直接写入本地 `.env.local` 的 `VITE_VISITOR_COUNTER_URL`。CORS 白名单在 `counter/src/index.ts` 的 `ALLOWED_ORIGINS` 中维护。
 
 其他静态托管平台使用构建命令 `npm run build`、产物目录 `dist` 即可。若改用 Vercel，建议安装 `npm i -g vercel`，方便使用 `vercel env pull`、`vercel deploy` 和 `vercel logs`；当前 GitHub Pages 方案不需要 Vercel CLI。
 
